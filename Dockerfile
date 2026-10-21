@@ -18,8 +18,7 @@ RUN composer install --no-dev --no-scripts --prefer-dist --ignore-platform-reqs
 # error on PHP 8.3.
 # ---------------------------------------------------------------------------
 FROM php:8.4-apache
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public \
-    COMPOSER_ALLOW_SUPERUSER=1 \
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
     PORT=10000
 
 RUN apt-get update \
@@ -32,14 +31,35 @@ COPY --from=vendor /app/vendor /var/www/html/vendor
 WORKDIR /var/www/html
 COPY . .
 
-# The official php-apache image ships "AllowOverride None" for /var/www, which
-# silently disables Laravel's public/.htaccess rewrite rules and turns every
-# non-root URL into a 404. Switch it to All.
+# The vhost is written by hand with a literal DocumentRoot. The usual
+# `sed s!/var/www/html!${APACHE_DOCUMENT_ROOT}!` trick relies on Apache
+# interpolating an environment variable, which silently falls back to
+# /var/www/html and publishes the whole application directory instead of
+# public/ — every URL then 404s and every source file is downloadable.
+#
+# AllowOverride All is required as well: with "AllowOverride None" Apache
+# ignores Laravel's public/.htaccess, so the rewrite rules never run.
 RUN set -eux; \
-    sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf; \
-    sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf; \
-    sed -ri -e 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf; \
+    printf '%s\n' \
+        '<VirtualHost *:80>' \
+        '    ServerName localhost' \
+        '    DocumentRoot /var/www/html/public' \
+        '    DirectoryIndex index.php index.html' \
+        '' \
+        '    <Directory /var/www/html/public>' \
+        '        Options -Indexes +FollowSymLinks' \
+        '        AllowOverride All' \
+        '        Require all granted' \
+        '    </Directory>' \
+        '' \
+        '    ErrorLog /var/log/apache2/error.log' \
+        '    CustomLog /var/log/apache2/access.log combined' \
+        '</VirtualHost>' \
+        > /etc/apache2/sites-available/000-default.conf; \
+    a2ensite 000-default.conf; \
     a2enmod rewrite headers; \
+    sed -ri -e 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf; \
+    grep -q 'DocumentRoot /var/www/html/public' /etc/apache2/sites-available/000-default.conf; \
     if [ -f /usr/local/etc/php/php.ini-production ]; then cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; fi; \
     printf '%s\n' 'opcache.enable=1' 'opcache.memory_consumption=192' 'opcache.max_accelerated_files=20000' 'opcache.validate_timestamps=0' 'max_execution_time=60' 'memory_limit=256M' >> /usr/local/etc/php/php.ini; \
     mkdir -p database; \

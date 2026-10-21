@@ -49,16 +49,22 @@ sed -ri "s!^Listen 80\$!Listen ${PORT:-10000}!" /etc/apache2/ports.conf
 # 4. Database
 # ---------------------------------------------------------------------------
 if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
-  DB_FILE="${DB_DATABASE:-/var/www/html/database/database.sqlite}"
+  if [ -z "${DB_DATABASE:-}" ]; then
+    if grep -q " /var/data " /proc/mounts; then
+      export DB_DATABASE=/var/data/database.sqlite
+    else
+      export DB_DATABASE=/var/www/html/database/database.sqlite
+      warn "No disk is mounted at /var/data, so the SQLite database lives inside the"
+      warn "container and is erased on every deploy. Attach a Render disk at /var/data."
+    fi
+  fi
+
+  DB_FILE="$DB_DATABASE"
   mkdir -p "$(dirname "$DB_FILE")"
   touch "$DB_FILE"
   chown www-data:www-data "$DB_FILE" || true
   chmod 664 "$DB_FILE" || true
-
-  if [ "$(dirname "$DB_FILE")" = "/var/data" ] && ! grep -q " /var/data " /proc/mounts; then
-    warn "/var/data is not a mounted disk. The SQLite file lives inside the"
-    warn "container and is erased on every deploy. Attach a Render disk at /var/data."
-  fi
+  log "SQLite database: $DB_FILE"
 fi
 
 # ---------------------------------------------------------------------------

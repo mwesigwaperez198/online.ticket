@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
         ]);
 
+        // Render terminates TLS and forwards the request over plain HTTP, so
+        // the X-Forwarded-Proto header is the only source of the real scheme.
+        $middleware->trustProxies(at: '*');
+
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
