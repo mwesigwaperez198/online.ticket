@@ -1,0 +1,22 @@
+# Fallback rewrite rules for the application directory.
+#
+# The Apache vhost in the Dockerfile serves public/ as the document root, so
+# this file is only used when the container is served from the application
+# directory itself. It forwards every request to the front controller and
+# keeps the application files from being downloaded.
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # Never expose the application directory or its configuration.
+    RewriteRule ^(?:app|bootstrap|config|database|resources|routes|storage|tests|vendor)(?:/|$) - [F,L]
+    RewriteRule ^(?:composer\.(?:json|lock)|artisan|package(?:-lock)?\.json|server\.php|\.env.*|\.git.*)$ - [F,L]
+
+    # Send requests to the front controller.
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
