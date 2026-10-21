@@ -132,18 +132,21 @@ Before relying on a package's API, confirm its installed version:
 
 === project rules ===
 
-# Pulse Tickets — project context
+# Novara Tickets — project context
 
 - Stack: Laravel 13, PHP 8.4+ (hard requirement — `symfony/http-foundation` 8.x needs >= 8.4.1 and uses property hooks), Blade + Tailwind Play CDN (no Node/Vite build step), SQLite (Postgres-ready), Docker on Render.
 - The Laravel app **is** the repository root. The legacy DocuDrop PHP app lives one directory above the repo and is never committed.
-- Mobile Money only (MTN / Airtel / Telecel) through the `App\Services\PaymentGateway\Contracts\MomoGateway` contract. `DemoMomoGateway` is bound automatically while `PAYSTACK_SECRET_KEY` is empty.
-- Money is integer pesewas. Commission resolves organizer override → `settings.platform_commission_bps` → snapshotted onto the order as `commission_bps_applied`.
+- Brand: **Novara** / Novara Tech Africa, Uganda. UGX, Ugandan phone numbers only (`/^(\+?2567|0)7\d{8}$/`). "Everything by Novara."
+- Mobile Money only, through the `App\Services\PaymentGateway\Contracts\MomoGateway` contract. `MtnMomoGateway` (live MTN Collections API), `PaystackMomoGateway` (live Paystack) and `DemoMomoGateway` (local only). The gateway is selected with `MOMO_GATEWAY` and guarded by `MOMO_MODE`: a production deployment binds `UnavailableMomoGateway` unless it runs in `live` mode with real credentials, so a mocked payment can never settle.
+- MTN notifications are unsigned: the webhook controller proves the charge with a server-to-server `GET /collection/v1_0/request-payment/{paymentId}` and requires the `paymentId` to equal `orders.gateway_reference` before capturing anything. Never trust an MTN notification on its own.
+- Money is integer minor units (100 per major unit). `Money::toGatewayAmount()` converts at the gateway boundary (UGX → whole shillings). Commission resolves organizer override → `settings.platform_commission_bps` → snapshotted onto the order as `commission_bps_applied`.
 - The oversell guard is the conditional atomic `UPDATE … WHERE capacity - sold_count - held_count >= qty` in `App\Services\Inventory`, inside `DB::transaction` with `lockForUpdate()`.
-- Deploy: push to `main` → Render auto-rebuilds from the root `Dockerfile` → `docker/entrypoint.sh` validates the runtime, provisions `APP_KEY`, migrates, runs `ticketing:install`, caches config/routes/views and boots Apache.
+- Deploy: push to `main` → Render auto-rebuilds from the root `Dockerfile` → `docker/entrypoint.sh` validates the runtime, provisions `APP_KEY`, migrates, runs `ticketing:install`, caches config/routes/views and boots Apache. `php artisan ticketing:deploy-check` is the release checklist.
 - The administrator account is provisioned by `php artisan ticketing:install` from the `ADMIN_EMAIL` / `ADMIN_PASSWORD` environment variables; the demo seed only runs while the database is empty.
+- MTN subscription keys live only in the Render environment. They are never committed and should be regenerated if they are ever pasted into a chat or a ticket.
 
 ## Local credentials and deploy notes
 
-Secrets (GitHub token, Render env vars, seeded account details) are **not** in this file and must never be
+Secrets (GitHub token, Render env vars, MTN subscription keys, seeded account details) are **not** in this file and must never be
 committed. They live in the git-ignored local file `AGENTS.local.md` in the project root — read it from
 disk at the start of any session that needs push or deploy access.

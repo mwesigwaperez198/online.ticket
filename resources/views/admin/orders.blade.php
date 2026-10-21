@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Orders — Pulse Tickets')
+@section('title', 'Orders — Novara Tickets')
 
 @section('content')
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -36,8 +36,8 @@
                         <td class="font-mono text-xs text-slate-300">{{ $order->tx_ref }}</td>
                         <td class="text-slate-300">{{ $order->buyer_name }}<br><span class="text-xs text-slate-500">{{ $order->buyer_phone }}</span></td>
                         <td class="text-slate-200">{{ $order->listing->title }}</td>
-                        <td class="text-slate-200">GHS {{ number_format($order->total_minor / 100, 2) }}</td>
-                        <td class="text-pulse">GHS {{ number_format($order->commission_minor / 100, 2) }}</td>
+                        <td class="text-slate-200">@money($order->total_minor)</td>
+                        <td class="text-pulse">@money($order->commission_minor)</td>
                         <td><span class="pill {{ $pill }}">{{ $order->status }}</span></td>
                         <td class="text-xs text-slate-500">{{ $order->created_at->format('d M Y H:i') }}</td>
                         <td class="text-right">

@@ -9,6 +9,8 @@ use App\Services\CheckoutService;
 use App\Services\PaymentGateway\Contracts\MomoGateway;
 use App\Services\PaymentGateway\DemoMomoGateway;
 use App\Services\PaymentProcessor;
+use App\Support\Money;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -26,8 +28,8 @@ final class CheckoutController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:20'],
             'buyer_name' => ['required', 'string', 'max:160'],
             'buyer_email' => ['required', 'email', 'max:190'],
-            'buyer_phone' => ['required', 'string', 'max:30', 'regex:/^(\+?233|0)\d{9}$/'],
-            'momo_provider' => ['required', Rule::in(['mtn', 'airtel', 'telecel'])],
+            'buyer_phone' => ['required', 'string', 'max:30', 'regex:'.config('ticketing.momo.provider_regex', '/^(\+?256|0)\d{9}$/')],
+            'momo_provider' => ['required', Rule::in(array_keys(config('ticketing.momo.providers', ['mtn' => 'MTN', 'airtel' => 'Airtel'])))],
         ]);
 
         try {
@@ -92,10 +94,20 @@ final class CheckoutController extends Controller
             return redirect()->route('buyer.orders.show', $order);
         }
 
-        $data = $gateway->verify($txRef);
+        /*
+         * The gateway reference is the identifier the provider knows the
+         * payment by: the Paystack reference, the MTN payment id or the demo
+         * reference, which is the transaction reference itself.
+         */
+        $reference = (string) ($order->gateway_reference ?: $txRef);
+        $data = $gateway->verify($reference);
+
+        if ((! is_array($data) || ($data['status'] ?? null) !== 'success') && $reference !== $txRef) {
+            $data = $gateway->verify($txRef);
+        }
 
         if (is_array($data) && ($data['status'] ?? null) === 'success') {
-            if ((int) ($data['amount'] ?? 0) !== $order->total_minor) {
+            if (! Money::matchesAmount((int) ($data['amount'] ?? 0), $order->total_minor, $order->currency)) {
                 return redirect()->route('buyer.orders.show', $order)
                     ->with('error', 'The confirmed amount does not match your order.');
             }
@@ -108,6 +120,43 @@ final class CheckoutController extends Controller
 
         return redirect()->route('buyer.orders.show', $order)
             ->with('error', 'Payment is still pending. Refresh in a moment once your Mobile Money confirmation lands.');
+    }
+
+    /**
+     * The "check your phone" screen for providers that authorise the payment
+     * on the Mobile Money handset instead of a browser page.
+     */
+    public function prompt(Request $request, string $tx_ref): View
+    {
+        $order = $this->ownedOrder($request, $tx_ref);
+
+        if ($order === null) {
+            abort(404);
+        }
+
+        return view('checkout.prompt', [
+            'order' => $order,
+            'provider' => (string) config('ticketing.momo.providers.'.$order->momo_provider, 'Mobile Money'),
+        ]);
+    }
+
+    /**
+     * The status the prompt screen polls while the buyer authorises the
+     * charge on their phone.
+     */
+    public function status(Request $request, string $tx_ref): JsonResponse
+    {
+        $order = $this->ownedOrder($request, $tx_ref);
+
+        if ($order === null) {
+            return response()->json(['status' => 'unknown', 'paid' => false], 404);
+        }
+
+        return response()->json([
+            'status' => $order->status,
+            'paid' => $order->isPaid(),
+            'url' => $order->isPaid() ? route('buyer.orders.show', $order) : null,
+        ]);
     }
 
     public function demo(string $txRef, MomoGateway $gateway): View
@@ -133,5 +182,16 @@ final class CheckoutController extends Controller
         }
 
         return redirect()->route('checkout.return', ['reference' => $tx_ref]);
+    }
+
+    /**
+     * An order that belongs to the signed in buyer.
+     */
+    private function ownedOrder(Request $request, string $txRef): ?Order
+    {
+        return Order::query()
+            ->where('tx_ref', $txRef)
+            ->where('user_id', $request->user()?->id)
+            ->first();
     }
 }

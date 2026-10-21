@@ -27,6 +27,7 @@ final class DemoMomoGateway implements MomoGateway
 
         Cache::put('demo:tx:'.$txRef, [
             'amount' => $payload['amount_minor'],
+            'currency' => $payload['currency'] ?? 'UGX',
             'phone' => $payload['phone'] ?? null,
             'approved' => false,
         ], now()->addMinutes(30));
@@ -50,7 +51,7 @@ final class DemoMomoGateway implements MomoGateway
             'status' => 'success',
             'reference' => $txRef,
             'amount' => $state['amount'],
-            'currency' => 'GHS',
+            'currency' => $state['currency'] ?? 'UGX',
             'channel' => 'mobile_money',
             'paid_at' => now()->toIso8601String(),
         ];

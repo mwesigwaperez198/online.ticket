@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', ($listing->exists ? 'Edit listing' : 'New listing').' — Pulse Tickets')
+@section('title', ($listing->exists ? 'Edit listing' : 'New listing').' — Novara Tickets')
 
 @section('content')
 <section class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -47,6 +47,30 @@
                 </div>
             </div>
 
+            <div>
+                <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Venue address</label>
+                <input type="text" name="venue_address" value="{{ old('venue_address', $listing->venue_address) }}"
+                       placeholder="e.g. Plot 30, Lugogo Cricket Oval, Kampala" class="input-cyber text-sm">
+                <p class="mt-1 text-xs text-slate-500">Shown on the event page with directions to the gate.</p>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Latitude</label>
+                    <input type="number" step="0.0000001" name="latitude" value="{{ old('latitude', $listing->latitude) }}"
+                           placeholder="0.3100000" class="input-cyber text-sm">
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Longitude</label>
+                    <input type="number" step="0.0000001" name="longitude" value="{{ old('longitude', $listing->longitude) }}"
+                           placeholder="32.5750000" class="input-cyber text-sm">
+                </div>
+            </div>
+            <p class="text-xs text-slate-500">
+                Both coordinates pin the venue on the live map. Open Google Maps, right click the venue and copy the
+                numbers after the decimal point.
+            </p>
+
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Starts at</label>
@@ -73,13 +97,13 @@
         @if(! $listing->exists)
             <div class="panel p-6">
                 <h2 class="font-display text-lg font-bold">Ticket tiers</h2>
-                <p class="mt-1 text-xs text-slate-500">Add up to four tiers with capacity and price in cedis.</p>
+                <p class="mt-1 text-xs text-slate-500">Add up to four tiers with capacity and price in Ugandan shillings.</p>
 
                 <div class="mt-4 space-y-3">
                     @for($i = 0; $i < 4; $i++)
                         <div class="grid gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
                             <input type="text" name="ticket_types[{{ $i }}][name]" placeholder="Tier name (e.g. Regular)" class="input-cyber text-sm">
-                            <input type="number" step="0.01" min="0" name="ticket_types[{{ $i }}][price]" placeholder="Price (GHS)" class="input-cyber text-sm">
+                            <input type="number" step="0.01" min="0" name="ticket_types[{{ $i }}][price]" placeholder="Price (UGX)" class="input-cyber text-sm">
                             <input type="number" min="1" name="ticket_types[{{ $i }}][capacity]" placeholder="Capacity" class="input-cyber text-sm">
                         </div>
                     @endfor
@@ -92,7 +116,7 @@
                     @forelse($ticketTypes as $tier)
                         <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-edge/80 bg-void/50 px-4 py-3 text-sm">
                             <span class="text-slate-200">{{ $tier->name }}</span>
-                            <span class="text-slate-400">GHS {{ number_format($tier->price_minor / 100, 2) }}</span>
+                            <span class="text-slate-400">@money($tier->price_minor)</span>
                             <span class="text-slate-500">{{ $tier->sold_count }} sold / {{ $tier->capacity }} capacity</span>
                         </div>
                     @empty
@@ -107,5 +131,31 @@
             <a href="{{ route('organizer.listings.index') }}" class="btn-ghost rounded-xl px-6 py-3">Cancel</a>
         </div>
     </form>
+
+    @if($listing->exists)
+        <form method="POST" action="{{ route('organizer.listings.cover', $listing) }}" enctype="multipart/form-data"
+              class="panel mt-6 space-y-4 p-6">
+            @csrf
+
+            <div>
+                <h2 class="font-display text-lg font-bold">Event banner</h2>
+                <p class="mt-1 text-xs text-slate-500">
+                    JPEG, PNG or WebP only, up to 2 MB. The file type is checked from its content, not its name.
+                </p>
+            </div>
+
+            @if($listing->coverImageUrl())
+                <img src="{{ $listing->coverImageUrl() }}" alt="Current banner" class="w-full max-w-md rounded-xl border border-edge/80 object-cover">
+            @endif
+
+            <div>
+                <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Choose image</label>
+                <input type="file" name="cover_image" accept="image/jpeg,image/png,image/webp" required
+                       class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-neon/15 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neon hover:file:bg-neon/25">
+            </div>
+
+            <button class="btn-ghost rounded-xl px-5 py-2.5 text-sm">Upload banner</button>
+        </form>
+    @endif
 </section>
 @endsection

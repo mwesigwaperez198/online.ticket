@@ -37,7 +37,7 @@ final class CheckoutService
                 : $this->holdEvent($listing, $input, $quantity);
 
             $subtotal = $unitPrice * $quantity;
-            $bps = $listing->organizer?->commission_bps;
+            $bps = $listing->organizer?->effectiveCommissionBps() ?? Money::commissionBps();
             $split = Money::split($subtotal, $bps);
 
             $order = Order::query()->create([
@@ -46,10 +46,10 @@ final class CheckoutService
                 'listing_id' => $listing->id,
                 'type' => $listing->type,
                 'status' => 'pending',
-                'currency' => 'GHS',
+                'currency' => Money::currency(),
                 'quantity' => $quantity,
                 'subtotal_minor' => $subtotal,
-                'commission_bps_applied' => $bps ?? Money::commissionBps(),
+                'commission_bps_applied' => $bps,
                 'commission_minor' => $split['commission_minor'],
                 'total_minor' => $subtotal,
                 'buyer_name' => $input['buyer_name'],

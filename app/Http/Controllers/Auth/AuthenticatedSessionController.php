@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Auth;
 
 use App\Models\User;
+use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -56,19 +57,25 @@ final class AuthenticatedSessionController
         Auth::login($user, (bool) $request->boolean('remember'));
         $request->session()->regenerate();
 
-        if ($user->role === 'admin') {
+        $user->forceFill(['last_login_at' => now()])->save();
+
+        Audit::log('auth.login', $user);
+
+        if ($user->isAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
-        if ($user->role === 'organizer') {
+        if ($user->isOrganizer()) {
             return redirect()->route('organizer.dashboard');
         }
 
-        return redirect()->route('home');
+        return redirect()->route('buyer.tickets');
     }
 
     public function destroy(Request $request): RedirectResponse
     {
+        Audit::log('auth.logout', $request->user());
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();

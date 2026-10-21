@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Platform ledger — Pulse Tickets')
+@section('title', 'Platform ledger — Novara Tickets')
 
 @section('content')
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -9,10 +9,10 @@
 
     <div class="mt-8 grid gap-4 sm:grid-cols-4">
         @foreach([
-            ['Gross settled', 'GHS '.number_format($totals['gross'] / 100, 2), 'text-neon'],
-            ['Wallet credits', 'GHS '.number_format($totals['credits'] / 100, 2), 'text-acid'],
-            ['Wallet debits', 'GHS '.number_format(abs($totals['debits']) / 100, 2), 'text-red-300'],
-            ['Commission booked', 'GHS '.number_format($totals['platform_fees'] / 100, 2), 'text-pulse'],
+            ['Gross settled', \App\Support\Money::format($totals['gross']), 'text-neon'],
+            ['Wallet credits', \App\Support\Money::format($totals['credits']), 'text-acid'],
+            ['Wallet debits', \App\Support\Money::format(abs($totals['debits'])), 'text-red-300'],
+            ['Commission booked', \App\Support\Money::format($totals['platform_fees']), 'text-pulse'],
         ] as [$label, $value, $tone])
             <div class="panel px-5 py-4">
                 <p class="text-[.7rem] uppercase tracking-wider text-slate-500">{{ $label }}</p>
@@ -43,8 +43,8 @@
                         <td class="font-mono text-xs text-slate-400">{{ $tx->order?->tx_ref ?? '—' }}</td>
                         <td class="text-slate-300">{{ $tx->memo }}</td>
                         <td class="text-xs text-slate-500">{{ $tx->direction }}</td>
-                        <td class="{{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-300' }}">GHS {{ number_format(abs($tx->amount_minor) / 100, 2) }}</td>
-                        <td class="text-slate-400">GHS {{ number_format(($tx->balance_after ?? 0) / 100, 2) }}</td>
+                        <td class="{{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-300' }}">@money(abs($tx->amount_minor))</td>
+                        <td class="text-slate-400">@money(($tx->balance_after ?? 0))</td>
                         <td class="text-xs text-slate-500">{{ $tx->created_at->format('d M Y H:i') }}</td>
                     </tr>
                 @empty

@@ -59,8 +59,8 @@ final class RegisteredUserController
 
         Audit::log('auth.registered', $user);
 
-        return redirect()->route($user->role === 'organizer' ? 'organizer.dashboard' : 'home')
-            ->with('status', 'Account created. Welcome to Pulse Tickets.');
+        return redirect()->route($user->role === 'organizer' ? 'organizer.dashboard' : 'buyer.tickets')
+            ->with('status', 'Account created. Welcome to '.config('app.name', 'Novara Tickets').'.');
     }
 
     private function uniqueSlug(string $name): string

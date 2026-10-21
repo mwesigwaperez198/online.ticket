@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Organizer;
 use App\Http\Controllers\Controller;
 use App\Models\WalletTransaction;
 use App\Support\Audit;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -46,14 +47,14 @@ final class PayoutController extends Controller
 
         $wallet = $organizer->wallet()->first();
         $available = (int) ($wallet->balance_minor ?? 0);
-        $requested = (int) round(((float) $validated['amount']) * 100);
+        $requested = Money::toMinor((float) $validated['amount']);
 
         if ($requested <= 0) {
             return back()->with('error', 'Enter a valid amount.');
         }
 
         if ($requested > $available) {
-            return back()->with('error', 'You cannot request more than your available balance of GHS '.number_format($available / 100, 2).'.');
+            return back()->with('error', 'You cannot request more than your available balance of '.Money::format($available).'.');
         }
 
         Audit::log('payout.requested', $organizer, [

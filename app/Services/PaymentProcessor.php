@@ -123,9 +123,19 @@ final class PaymentProcessor
         }
 
         $wallet = Wallet::query()->firstOrCreate(
-            ['organizer_id' => $organizer->id, 'currency' => $order->currency],
-            ['balance_minor' => 0, 'pending_minor' => 0, 'lifetime_earned_minor' => 0, 'lifetime_refunded_minor' => 0],
+            ['organizer_id' => $organizer->id],
+            [
+                'currency' => $order->currency,
+                'balance_minor' => 0,
+                'pending_minor' => 0,
+                'lifetime_earned_minor' => 0,
+                'lifetime_refunded_minor' => 0,
+            ],
         );
+
+        if ($wallet->currency !== $order->currency) {
+            $wallet->forceFill(['currency' => $order->currency])->save();
+        }
 
         $share = $order->subtotal_minor - $order->commission_minor;
 

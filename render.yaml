@@ -7,7 +7,7 @@ services:
     autoDeployTrigger: commit
     envVars:
       - key: APP_NAME
-        value: Pulse Tickets
+        value: Novara Tickets
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
@@ -17,7 +17,7 @@ services:
       - key: APP_KEY
         sync: false
       - key: APP_TIMEZONE
-        value: Africa/Accra
+        value: Africa/Kampala
       - key: DB_CONNECTION
         value: sqlite
       - key: DB_DATABASE
@@ -30,14 +30,56 @@ services:
         value: database
       - key: MAIL_MAILER
         value: log
+      - key: MAIL_FROM_ADDRESS
+        value: novaratechafrica@gmail.com
       - key: PAYSTACK_SECRET_KEY
         sync: false
       - key: PAYSTACK_PUBLIC_KEY
         sync: false
       - key: PAYSTACK_CHANNELS
         value: mobile_money
+      - key: PAYSTACK_CURRENCY
+        value: UGX
       - key: PAYSTACK_WEBHOOK_URL
         sync: false
+      - key: MOMO_GATEWAY
+        value: mtn
+      - key: MOMO_MODE
+        value: live
+      - key: MOMO_WEBHOOK_PROVIDERS
+        value: mtn
+      - key: MTN_BASE_URL
+        sync: false
+      - key: MTN_PRIMARY_KEY
+        sync: false
+      - key: MTN_SECONDARY_KEY
+        sync: false
+      - key: MTN_TARGET_ENVIRONMENT
+        sync: false
+      - key: MTN_CALLBACK_URL
+        sync: false
+      - key: MTN_CURRENCY
+        value: UGX
+      - key: MTN_PAYEE
+        value: Novara
+      - key: MTN_WEBHOOK_SECRET
+        sync: false
+      - key: PLATFORM_COMMISSION_BPS
+        value: "2000"
+      - key: BRAND_NAME
+        value: Novara Tickets
+      - key: BRAND_COMPANY
+        value: Novara Tech Africa
+      - key: BRAND_EMAIL
+        value: novaratechafrica@gmail.com
+      - key: BRAND_WHATSAPP
+        value: "+256765866555"
+      - key: BRAND_WHATSAPP_LINK
+        value: https://wa.me/256765866555
+      - key: BRAND_INSTAGRAM
+        value: "https://www.instagram.com/novara_tech_uganda?dlrf=azN4ZW9kdnBkOHFr"
+      - key: BRAND_WEBSITE
+        value: https://novara-tech-africa.kesug.com
       - key: APP_NOTIFICATION_MAIL_FROM
         sync: false
       - key: ADMIN_EMAIL

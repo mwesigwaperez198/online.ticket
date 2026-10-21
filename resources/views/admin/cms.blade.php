@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Admin CMS — Pulse Tickets')
+@section('title', 'Admin CMS — '.config('app.name', 'Novara Tickets'))
 
 @section('content')
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -10,7 +10,8 @@
             <h1 class="mt-3 font-display text-3xl font-black">Platform control room</h1>
             <p class="mt-1 text-sm text-slate-500">Transaction volume, merchant audit and moderation queues.</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('admin.analytics.index') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">User analytics</a>
             <a href="{{ route('admin.approvals.index') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">Approvals</a>
             <a href="{{ route('admin.ledger') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">Ledger</a>
         </div>
@@ -18,9 +19,9 @@
 
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @foreach([
-            ['Gross volume', 'GHS '.number_format($stats['volume_minor'] / 100, 2), 'text-neon'],
-            ['Platform revenue', 'GHS '.number_format($stats['commission_minor'] / 100, 2), 'text-pulse'],
-            ['Organizer net', 'GHS '.number_format($stats['net_minor'] / 100, 2), 'text-acid'],
+            ['Gross volume', \App\Support\Money::format($stats['volume_minor']), 'text-neon'],
+            ['Platform revenue', \App\Support\Money::format($stats['commission_minor']), 'text-pulse'],
+            ['Organizer net', \App\Support\Money::format($stats['net_minor']), 'text-acid'],
             ['Tickets issued', number_format($stats['tickets_sold']), 'text-slate-100'],
         ] as [$label, $value, $tone])
             <div class="panel px-5 py-4">
@@ -48,7 +49,7 @@
         <div class="panel p-6">
             <div class="flex items-center justify-between">
                 <h2 class="font-display text-lg font-bold">Transaction volume — last 14 days</h2>
-                <span class="text-xs text-slate-500">Current fee {{ rtrim(rtrim(number_format($commissionBps / 100, 2), '0'), '.') }}%</span>
+                <span class="text-xs text-slate-500">Current fee {{ \App\Support\Money::percent($commissionBps) }}</span>
             </div>
 
             <div class="mt-6 flex h-56 items-end gap-2">
@@ -59,7 +60,7 @@
                     @endphp
                     <div class="group flex flex-1 flex-col items-center gap-2">
                         <span class="text-[.6rem] text-slate-500 opacity-0 transition group-hover:opacity-100">
-                            GHS {{ number_format($point['gross'] / 100, 0) }}
+                            {{ \App\Support\Money::format($point['gross']) }}
                         </span>
                         <div class="w-full rounded-t-md bg-gradient-to-t from-neon/30 to-neon transition group-hover:from-pulse/40 group-hover:to-pulse"
                              style="height: {{ $height }}%"></div>
@@ -170,7 +171,7 @@
                             <tr>
                                 <td class="font-mono text-xs text-slate-300">{{ $order->tx_ref }}</td>
                                 <td class="text-slate-300">{{ $order->buyer_name }}</td>
-                                <td class="text-slate-200">GHS {{ number_format($order->total_minor / 100, 2) }}</td>
+                                <td class="text-slate-200">@money($order->total_minor)</td>
                                 <td><span class="pill {{ $order->status === 'paid' ? 'pill-paid' : 'pill-pending' }}">{{ $order->status }}</span></td>
                             </tr>
                         @empty
@@ -191,7 +192,7 @@
                             <tr>
                                 <td><span class="pill {{ $tx->type === 'fee' ? 'pill-pending' : 'pill-info' }}">{{ $tx->type }}</span></td>
                                 <td class="text-slate-300">{{ $tx->memo }}</td>
-                                <td class="{{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-300' }}">GHS {{ number_format(abs($tx->amount_minor) / 100, 2) }}</td>
+                                <td class="{{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-300' }}">@money(abs($tx->amount_minor))</td>
                                 <td class="text-xs text-slate-500">{{ $tx->created_at->format('d M H:i') }}</td>
                             </tr>
                         @empty

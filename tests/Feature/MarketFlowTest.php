@@ -15,13 +15,17 @@ use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WebhookEvent;
 use App\Services\PaymentGateway\DemoMomoGateway;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 final class MarketFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const SECRET = 'sk_test_novara_secret_key';
 
     private User $buyer;
 
@@ -45,7 +49,7 @@ final class MarketFlowTest extends TestCase
 
         Wallet::query()->create([
             'organizer_id' => $organizer->id,
-            'currency' => 'GHS',
+            'currency' => 'UGX',
             'balance_minor' => 0,
         ]);
 
@@ -65,7 +69,7 @@ final class MarketFlowTest extends TestCase
             'listing_id' => $this->listing->id,
             'name' => 'Regular',
             'price_minor' => 10_000,
-            'currency' => 'GHS',
+            'currency' => 'UGX',
             'capacity' => 5,
             'max_per_order' => 5,
             'active' => true,
@@ -87,7 +91,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 2,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => 'kojo@example.test',
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ]);
 
@@ -128,7 +132,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 2,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => $this->buyer->email,
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ])->assertRedirect();
 
@@ -194,7 +198,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 1,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => $this->buyer->email,
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ])->assertRedirect();
 
@@ -233,7 +237,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 4,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => 'kojo@example.test',
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ])->assertRedirect();
 
@@ -243,7 +247,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 4,
             'buyer_name' => 'Ama Serwaa',
             'buyer_email' => 'ama@example.test',
-            'buyer_phone' => '0240000004',
+            'buyer_phone' => '0756123456',
             'momo_provider' => 'airtel',
         ])->assertSessionHas('error');
 
@@ -258,7 +262,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 1,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => 'kojo@example.test',
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ]);
 
@@ -269,13 +273,13 @@ final class MarketFlowTest extends TestCase
             'data' => [
                 'status' => 'success',
                 'reference' => $order->tx_ref,
-                'amount' => $order->total_minor,
-                'currency' => 'GHS',
+                'amount' => Money::toGatewayAmount($order->total_minor, 'UGX'),
+                'currency' => 'UGX',
             ],
         ];
 
-        $this->postJson(route('api.v1.momo.webhook'), $payload)->assertOk()->assertJson(['status' => true]);
-        $this->postJson(route('api.v1.momo.webhook'), $payload)->assertOk()->assertJson(['message' => 'duplicate ignored']);
+        $this->postSignedWebhook($payload)->assertOk()->assertJson(['status' => true]);
+        $this->postSignedWebhook($payload)->assertOk()->assertJson(['message' => 'duplicate ignored']);
 
         $this->assertSame('paid', $order->fresh()->status);
         $this->assertSame(1, Ticket::query()->count());
@@ -290,7 +294,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 1,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => 'kojo@example.test',
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ]);
 
@@ -324,7 +328,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 1,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => 'kojo@example.test',
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ]);
 
@@ -372,7 +376,7 @@ final class MarketFlowTest extends TestCase
             'quantity' => 2,
             'buyer_name' => 'Kojo Mensah',
             'buyer_email' => 'kojo@example.test',
-            'buyer_phone' => '0240000003',
+            'buyer_phone' => '0771234567',
             'momo_provider' => 'mtn',
         ]);
 
@@ -384,5 +388,31 @@ final class MarketFlowTest extends TestCase
 
         $this->assertSame('expired', Order::query()->firstOrFail()->status);
         $this->assertSame(0, (int) $this->tier->fresh()->held_count);
+    }
+
+    /**
+     * Post a provider callback the way the provider signs it: the raw body
+     * with the HMAC-SHA512 signature of the configured secret.
+     *
+     * @param  array<string,mixed>  $payload
+     */
+    private function postSignedWebhook(array $payload): TestResponse
+    {
+        config(['ticketing.paystack.secret_key' => self::SECRET]);
+
+        $raw = json_encode($payload, JSON_THROW_ON_ERROR);
+
+        return $this->call(
+            'POST',
+            route('api.v1.momo.webhook'),
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_PAYSTACK_SIGNATURE' => hash_hmac('sha512', $raw, self::SECRET),
+            ],
+            $raw
+        );
     }
 }

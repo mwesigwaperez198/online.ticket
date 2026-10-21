@@ -11,6 +11,7 @@ use App\Models\Setting;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Support\Audit;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,6 +98,6 @@ final class SettingsController extends Controller
 
         Audit::log('payout.settled', $organizer, ['amount_minor' => $amount]);
 
-        return back()->with('status', 'Payout of GHS '.number_format($amount / 100, 2).' recorded.');
+        return back()->with('status', 'Payout of '.Money::format($amount).' recorded.');
     }
 }

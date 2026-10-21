@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Listing extends Model
@@ -16,7 +17,8 @@ class Listing extends Model
     use HasFactory;
 
     protected $fillable = [
-        'organizer_id', 'type', 'slug', 'title', 'description', 'venue', 'city', 'region',
+        'organizer_id', 'type', 'slug', 'title', 'description', 'venue', 'venue_address',
+        'city', 'region', 'latitude', 'longitude',
         'cover_image', 'starts_at', 'ends_at', 'price_from_minor', 'status', 'allow_refunds',
         'refund_window_hours', 'max_per_order', 'meta', 'published_at',
     ];
@@ -32,6 +34,8 @@ class Listing extends Model
             'price_from_minor' => 'integer',
             'max_per_order' => 'integer',
             'refund_window_hours' => 'integer',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 
@@ -111,5 +115,26 @@ class Listing extends Model
     public function isLive(): bool
     {
         return in_array($this->status, ['published', 'live'], true);
+    }
+
+    public function hasCoordinates(): bool
+    {
+        return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    /**
+     * The public URL of the event banner, if one was uploaded.
+     */
+    public function coverImageUrl(): ?string
+    {
+        if (! is_string($this->cover_image) || $this->cover_image === '') {
+            return null;
+        }
+
+        if (str_starts_with($this->cover_image, 'http://') || str_starts_with($this->cover_image, 'https://')) {
+            return $this->cover_image;
+        }
+
+        return Storage::disk('public')->url($this->cover_image);
     }
 }

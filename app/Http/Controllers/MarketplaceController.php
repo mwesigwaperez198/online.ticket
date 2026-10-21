@@ -61,7 +61,7 @@ final class MarketplaceController extends Controller
         return view('events.show', [
             'listing' => $listing,
             'ticketTypes' => $ticketTypes,
-            'commissionBps' => (int) setting('platform_commission_bps', 2000),
+            'commissionBps' => $listing->organizer?->effectiveCommissionBps() ?? (int) setting('platform_commission_bps', 2000),
         ]);
     }
 }

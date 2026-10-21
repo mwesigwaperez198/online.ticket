@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Create account — Pulse Tickets')
+@section('title', 'Create account — Novara Tickets')
 
 @section('content')
 <section class="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-16">

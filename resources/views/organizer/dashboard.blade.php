@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Organizer dashboard — Pulse Tickets')
+@php
+    $feeBps = $organizer?->effectiveCommissionBps() ?? (int) setting('platform_commission_bps', 2000);
+@endphp
+
+@section('title', 'Organizer dashboard — '.config('app.name', 'Novara Tickets'))
 
 @section('content')
 <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -12,7 +16,8 @@
             <h1 class="mt-3 font-display text-3xl font-black">{{ $organizer?->business_name ?? 'Organizer' }}</h1>
             <p class="mt-1 text-sm text-slate-500">Sales, wallet balance, capacity and gate activity in one view.</p>
         </div>
-        <div class="flex gap-3">
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('organizer.payout-settings.edit') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">Payout settings</a>
             <a href="{{ route('organizer.scanner') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">Open scanner</a>
             <a href="{{ route('organizer.listings.create') }}" class="btn-neon rounded-xl px-4 py-2.5 text-sm">New listing</a>
         </div>
@@ -21,9 +26,9 @@
     <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @foreach([
             ['Tickets sold', number_format($metrics['tickets_sold']), 'text-neon'],
-            ['Wallet balance', 'GHS '.number_format($metrics['balance_minor'] / 100, 2), 'text-acid'],
-            ['Gross volume', 'GHS '.number_format($metrics['gross_minor'] / 100, 2), 'text-slate-100'],
-            ['Platform fee', 'GHS '.number_format($metrics['commission_minor'] / 100, 2), 'text-pulse'],
+            ['Wallet balance', \App\Support\Money::format($metrics['balance_minor']), 'text-acid'],
+            ['Gross volume', \App\Support\Money::format($metrics['gross_minor']), 'text-slate-100'],
+            ['Platform fee', \App\Support\Money::format($metrics['commission_minor']), 'text-pulse'],
         ] as [$label, $value, $tone])
             <div class="panel px-5 py-4">
                 <p class="text-[.7rem] uppercase tracking-wider text-slate-500">{{ $label }}</p>
@@ -32,10 +37,18 @@
         @endforeach
     </div>
 
-    <div class="mt-4 grid gap-4 sm:grid-cols-3">
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="panel px-5 py-4">
             <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Net earnings</p>
-            <p class="mt-2 font-display text-xl font-bold text-slate-100">GHS {{ number_format($metrics['net_minor'] / 100, 2) }}</p>
+            <p class="mt-2 font-display text-xl font-bold text-slate-100">@money($metrics['net_minor'])</p>
+            <p class="mt-1 text-xs text-slate-500">Gross minus the {{ \App\Support\Money::percent($feeBps) }} platform fee.</p>
+        </div>
+        <div class="panel px-5 py-4">
+            <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Your commission rate</p>
+            <p class="mt-2 font-display text-xl font-bold {{ $feeBps === 0 ? 'text-acid' : 'text-slate-100' }}">
+                {{ \App\Support\Money::percent($feeBps) }}
+            </p>
+            <p class="mt-1 text-xs text-slate-500">Approved by the platform admin.</p>
         </div>
         <div class="panel px-5 py-4">
             <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Capacity remaining</p>
@@ -47,6 +60,32 @@
         <div class="panel px-5 py-4">
             <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Paid orders</p>
             <p class="mt-2 font-display text-xl font-bold text-slate-100">{{ number_format($metrics['orders']) }}</p>
+        </div>
+    </div>
+
+    <div class="mt-4 panel px-5 py-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Mobile Money payout account</p>
+                @if($organizer && $organizer->hasPayoutDetails())
+                    <p class="mt-2 font-display text-lg font-bold text-slate-100">
+                        {{ config('ticketing.momo.providers.'.$organizer->payout_provider, $organizer->payout_provider) }} · {{ $organizer->payout_momo_number }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">Account name: {{ $organizer->payout_name }}</p>
+                @else
+                    <p class="mt-2 text-sm text-amber">No Mobile Money number submitted yet — payouts cannot be settled.</p>
+                @endif
+            </div>
+            <div class="flex items-center gap-3">
+                @if($organizer && $organizer->payout_approved_at)
+                    <span class="pill pill-paid">Approved {{ $organizer->payout_approved_at->format('d M Y') }}</span>
+                @elseif($organizer && $organizer->hasPayoutDetails())
+                    <span class="pill pill-pending">Awaiting admin approval</span>
+                @else
+                    <span class="pill pill-closed">Not submitted</span>
+                @endif
+                <a href="{{ route('organizer.payout-settings.edit') }}" class="btn-ghost rounded-lg px-3 py-1.5 text-xs">Manage</a>
+            </div>
         </div>
     </div>
 
@@ -64,7 +103,7 @@
                             <tr>
                                 <td class="font-mono text-xs text-slate-300">{{ $order->tx_ref }}</td>
                                 <td class="text-slate-200">{{ $order->listing->title }}</td>
-                                <td class="text-slate-200">GHS {{ number_format($order->total_minor / 100, 2) }}</td>
+                                <td class="text-slate-200">@money($order->total_minor)</td>
                                 <td><span class="pill {{ $order->status === 'paid' ? 'pill-paid' : 'pill-pending' }}">{{ $order->status }}</span></td>
                             </tr>
                         @empty

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Order '.$order->tx_ref.' — Pulse Tickets')
+@section('title', 'Order '.$order->tx_ref.' — Novara Tickets')
 
 @section('content')
 <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -24,9 +24,9 @@
                         @foreach($order->items as $item)
                             <tr>
                                 <td class="text-slate-200">{{ $item->label() }}</td>
-                                <td class="text-slate-400">GHS {{ number_format($item->unit_price_minor / 100, 2) }}</td>
+                                <td class="text-slate-400">@money($item->unit_price_minor)</td>
                                 <td class="text-slate-400">{{ $item->quantity }}</td>
-                                <td class="text-slate-200">GHS {{ number_format($item->line_total_minor / 100, 2) }}</td>
+                                <td class="text-slate-200">@money($item->line_total_minor)</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -58,10 +58,10 @@
             <div class="panel p-5">
                 <h2 class="font-display text-lg font-bold">Payment summary</h2>
                 <dl class="mt-4 space-y-2 text-sm">
-                    <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="text-slate-200">GHS {{ number_format($order->subtotal_minor / 100, 2) }}</dd></div>
-                    <div class="flex justify-between"><dt class="text-slate-500">Platform fee ({{ $order->commission_bps_applied / 100 }}%)</dt><dd class="text-slate-200">GHS {{ number_format($order->commission_minor / 100, 2) }}</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Subtotal</dt><dd class="text-slate-200">@money($order->subtotal_minor)</dd></div>
+                    <div class="flex justify-between"><dt class="text-slate-500">Platform fee ({{ \App\Support\Money::percent($order->commission_bps_applied) }})</dt><dd class="text-slate-200">@money($order->commission_minor)</dd></div>
                     <div class="divider-glow my-2"></div>
-                    <div class="flex justify-between text-base"><dt class="font-medium text-slate-300">Total paid</dt><dd class="font-display text-xl font-bold text-neon">GHS {{ number_format($order->total_minor / 100, 2) }}</dd></div>
+                    <div class="flex justify-between text-base"><dt class="font-medium text-slate-300">Total paid</dt><dd class="font-display text-xl font-bold text-neon">@money($order->total_minor)</dd></div>
                     <div class="flex justify-between text-xs"><dt class="text-slate-500">Mobile Money</dt><dd class="text-slate-300">{{ $order->momo_provider }} • {{ $order->buyer_phone }}</dd></div>
                     <div class="flex justify-between text-xs"><dt class="text-slate-500">Gateway</dt><dd class="text-slate-300">{{ $order->gateway }} @if($order->gateway_reference)• {{ $order->gateway_reference }}@endif</dd></div>
                 </dl>

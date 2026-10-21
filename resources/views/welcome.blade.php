@@ -1,20 +1,25 @@
 @extends('layouts.app')
 
-@section('title', 'Pulse Tickets — Mobile Money events & services')
+@php
+    $platformFeeLabel = \App\Support\Money::percent((int) setting('platform_commission_bps', 2000));
+@endphp
+
+@section('title', 'Novara Tickets — Mobile Money events & services in Uganda')
+@section('meta_description', 'Novara Tickets buys and sells event tickets, services and gate passes across Uganda. Pay instantly with MTN Mobile Money or Airtel Money. Everything by Novara.')
 
 @section('content')
 <section class="relative overflow-hidden border-b border-edge/70">
     <div class="absolute inset-0 grid-lines opacity-70"></div>
     <div class="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         <div class="max-w-3xl">
-            <span class="pill pill-info">MTN · AirtelTigo · Telecel</span>
+            <span class="pill pill-info">MTN Mobile Money · Airtel Money · Uganda</span>
             <h1 class="mt-6 font-display text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
                 Own the night.<br>
                 <span class="neon-text">Sell the tickets.</span>
             </h1>
             <p class="mt-6 max-w-2xl text-base text-slate-400 sm:text-lg">
-                Live events, service bookings and gate passes — paid instantly with Mobile Money.
-                Organizers keep 80%. The platform keeps a configurable cut, settled straight to your wallet.
+                Live events, service bookings and gate passes across Uganda — paid instantly with Mobile Money.
+                {{ config('ticketing.brand.tagline', 'Everything by Novara.') }}
             </p>
 
             <div class="mt-8 flex flex-wrap items-center gap-3">
@@ -26,7 +31,7 @@
                 @foreach([
                     ['Live listings', number_format($listings->total())],
                     ['Mobile money', 'MTN / Airtel'],
-                    ['Platform fee', rtrim(rtrim(number_format((float) setting('platform_commission_bps', 2000) / 100, 2), '0'), '.') . '%'],
+                    ['Platform fee', $platformFeeLabel],
                     ['Instant tickets', 'QR + wallet'],
                 ] as [$label, $value])
                     <div class="panel px-4 py-3">
@@ -39,7 +44,36 @@
     </div>
 </section>
 
-<section id="events" class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+<section class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div class="panel grid gap-6 p-6 md:grid-cols-3">
+        <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500">Platform fee</p>
+            <p class="mt-1 font-display text-4xl font-black text-acid">{{ $platformFeeLabel }}</p>
+            <p class="mt-2 text-sm text-slate-400">
+                A single platform fee is taken from every ticket sold on the platform. The admin approves the final
+                rate for every organiser before their first payout, and the fee is itemised on every order.
+            </p>
+        </div>
+        <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500">You receive</p>
+            <p class="mt-1 font-display text-4xl font-black text-neon">{{ \App\Support\Money::percent(10000 - (int) setting('platform_commission_bps', 2000)) }}</p>
+            <p class="mt-2 text-sm text-slate-400">
+                Settled straight into your organizer wallet and paid out to the Mobile Money number you submit for
+                approval inside your workspace.
+            </p>
+        </div>
+        <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500">Payment</p>
+            <p class="mt-1 font-display text-4xl font-black text-pulse">MoMo</p>
+            <p class="mt-2 text-sm text-slate-400">
+                Buyers approve a USSD prompt on their own phone with MTN Mobile Money or Airtel Money. Tickets are
+                issued the moment the payment lands.
+            </p>
+        </div>
+    </div>
+</section>
+
+<section id="events" class="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h2 class="font-display text-2xl font-bold sm:text-3xl">Tonight &amp; upcoming</h2>
@@ -69,6 +103,7 @@
                 $remaining = $listing->isService()
                     ? $listing->services->sum(fn ($service) => $service->slots->sum(fn ($slot) => $slot->remaining()))
                     : $tiers->sum(fn ($t) => max(0, $t->capacity - $t->sold_count - $t->held_count));
+                $listingFeeBps = $listing->organizer?->effectiveCommissionBps() ?? (int) setting('platform_commission_bps', 2000);
             @endphp
             <article class="panel panel-hover flex flex-col overflow-hidden">
                 <div class="relative h-40 overflow-hidden border-b border-edge/70 bg-gradient-to-br from-neon/25 via-transparent to-pulse/25">
@@ -92,7 +127,14 @@
                 <div class="flex flex-1 flex-col gap-4 p-5">
                     <div class="flex items-center justify-between text-sm">
                         <span class="text-slate-500">{{ $listing->starts_at->format('D d M • H:i') }}</span>
-                        <span class="font-display text-lg font-bold text-neon">GHS {{ number_format($cheapest / 100, 2) }}</span>
+                        <span class="font-display text-lg font-bold text-neon">@money($cheapest)</span>
+                    </div>
+
+                    <div class="flex items-center justify-between rounded-lg border border-edge/70 bg-void/50 px-3 py-2 text-xs">
+                        <span class="text-slate-400">Platform fee</span>
+                        <span class="font-semibold {{ $listingFeeBps === 0 ? 'text-acid' : 'text-slate-200' }}">
+                            {{ \App\Support\Money::percent($listingFeeBps) }}
+                        </span>
                     </div>
 
                     @if($tiers->isNotEmpty())
@@ -102,7 +144,7 @@
                                 <div class="flex items-center justify-between text-xs">
                                     <span class="text-slate-300">{{ $tier->name }}</span>
                                     <span class="flex items-center gap-2">
-                                        <span class="text-slate-400">GHS {{ number_format($tier->price_minor / 100, 2) }}</span>
+                                        <span class="text-slate-400">@money($tier->price_minor)</span>
                                         <span class="pill {{ $left === 0 ? 'pill-closed' : ($left <= 12 ? 'pill-pending' : 'pill-paid') }}">
                                             {{ $left === 0 ? 'Sold out' : $left.' left' }}
                                         </span>
@@ -127,7 +169,7 @@
                                         <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Ticket tier</label>
                                         <select name="ticket_type_id" class="input-cyber text-sm" required>
                                             @foreach($tiers as $tier)
-                                                <option value="{{ $tier->id }}">{{ $tier->name }} — GHS {{ number_format($tier->price_minor / 100, 2) }}</option>
+                                                <option value="{{ $tier->id }}">{{ $tier->name }} — @money($tier->price_minor)</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -141,7 +183,7 @@
                                                 @foreach($service->slots as $slot)
                                                     @if($slot->remaining() > 0 && $slot->starts_at->isFuture())
                                                         <option value="{{ $slot->id }}">
-                                                            {{ $slot->starts_at->format('D d M Y • H:i') }} — {{ $service->name }} (GHS {{ number_format($service->price_minor / 100, 2) }})
+                                                            {{ $slot->starts_at->format('D d M Y • H:i') }} — {{ $service->name }} (@money($service->price_minor))
                                                         </option>
                                                     @endif
                                                 @endforeach
@@ -167,7 +209,8 @@
 
                                 <div>
                                     <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">MoMo number</label>
-                                    <input type="tel" name="buyer_phone" placeholder="024 000 0000" class="input-cyber text-sm" required>
+                                    <input type="tel" name="buyer_phone" placeholder="0772 123 456" class="input-cyber text-sm" required>
+                                    <p class="mt-1 text-xs text-slate-500">{{ config('ticketing.momo.provider_hint') }}</p>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-3">
@@ -186,7 +229,7 @@
                                 @endguest
 
                                 <button class="btn-neon w-full rounded-xl px-4 py-2.5 text-sm" @guest disabled @endguest>
-                                    Pay GHS {{ number_format($cheapest / 100, 2) }} with Mobile Money
+                                    Request MoMo PIN Prompt
                                 </button>
                             </form>
                         </div>

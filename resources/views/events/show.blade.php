@@ -1,12 +1,22 @@
 @extends('layouts.app')
 
-@section('title', $listing->title.' — Pulse Tickets')
+@php
+    $listingFeeBps = $commissionBps;
+    $venueLabel = trim(implode(', ', array_filter([$listing->venue, $listing->city])));
+@endphp
+
+@section('title', $listing->title.' — '.config('app.name', 'Novara Tickets'))
+@section('meta_description', trim($listing->description ?: 'Buy '.$listing->title.' tickets with Mobile Money on '.config('app.name', 'Novara Tickets').' in Uganda.'))
 
 @section('content')
 <section class="border-b border-edge/70">
     <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div class="grid gap-10 lg:grid-cols-[1.25fr_1fr]">
             <div>
+                @if($listing->coverImageUrl())
+                    <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="mb-6 w-full rounded-2xl border border-edge/80 object-cover shadow-[0_0_40px_rgba(0,255,178,0.12)]" loading="lazy">
+                @endif
+
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="pill {{ $listing->isEvent() ? 'pill-live' : 'pill-info' }}">{{ $listing->isEvent() ? 'Event' : 'Service' }}</span>
                     <span class="pill pill-pending">{{ $listing->starts_at->format('D d M Y • H:i') }}</span>
@@ -20,6 +30,18 @@
                     Presented by <span class="text-slate-200">{{ $listing->organizer->business_name }}</span>
                 </p>
 
+                @if($listing->organizer && $listing->organizer->hasSocialLinks())
+                    <div class="mt-3 flex flex-wrap gap-3 text-xs">
+                        @foreach($listing->organizer->socialLinks() as $network => $link)
+                            <a class="text-slate-400 underline transition hover:text-neon" href="{{ $link }}" target="_blank" rel="noopener">{{ $network }}</a>
+                        @endforeach
+                    </div>
+                @endif
+
+                <div class="mt-8 space-y-6">
+                    @include('partials.venue-map')
+                </div>
+
                 @if($listing->isService() && $listing->services->isNotEmpty())
                     <div class="mt-8 space-y-3">
                         <h2 class="font-display text-lg font-bold">Available slots</h2>
@@ -30,7 +52,7 @@
                                         <p class="font-display font-bold">{{ $service->name }}</p>
                                         <p class="text-xs text-slate-500">{{ $service->duration_minutes }} min session</p>
                                     </div>
-                                    <span class="font-display text-lg font-bold text-neon">GHS {{ number_format($service->price_minor / 100, 2) }}</span>
+                                    <span class="font-display text-lg font-bold text-neon">@money($service->price_minor)</span>
                                 </div>
                                 <div class="mt-3 flex flex-wrap gap-2">
                                     @foreach($service->slots as $slot)
@@ -57,7 +79,7 @@
                                     <p class="font-display font-bold text-slate-100">{{ $tier->name }}</p>
                                     @if($tier->description)<p class="mt-1 text-xs text-slate-500">{{ $tier->description }}</p>@endif
                                 </div>
-                                <span class="font-display text-lg font-bold text-neon">GHS {{ number_format($tier->price_minor / 100, 2) }}</span>
+                                <span class="font-display text-lg font-bold text-neon">@money($tier->price_minor)</span>
                             </div>
                             <div class="mt-3 flex items-center justify-between">
                                 <span class="pill {{ $left === 0 ? 'pill-closed' : ($left <= 12 ? 'pill-pending' : 'pill-paid') }}">
@@ -83,7 +105,7 @@
                                 <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Ticket tier</label>
                                 <select name="ticket_type_id" class="input-cyber text-sm" required>
                                     @foreach($ticketTypes as $tier)
-                                        <option value="{{ $tier->id }}">{{ $tier->name }} — GHS {{ number_format($tier->price_minor / 100, 2) }}</option>
+                                        <option value="{{ $tier->id }}">{{ $tier->name }} — @money($tier->price_minor)</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -97,7 +119,7 @@
                                         @foreach($service->slots as $slot)
                                             @if($slot->remaining() > 0 && $slot->starts_at->isFuture())
                                                 <option value="{{ $slot->id }}">
-                                                    {{ $slot->starts_at->format('D d M Y • H:i') }} — {{ $service->name }} (GHS {{ number_format($service->price_minor / 100, 2) }})
+                                                    {{ $slot->starts_at->format('D d M Y • H:i') }} — {{ $service->name }} (@money($service->price_minor))
                                                 </option>
                                             @endif
                                         @endforeach
@@ -123,7 +145,8 @@
 
                         <div>
                             <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">MoMo number</label>
-                            <input type="tel" name="buyer_phone" placeholder="024 000 0000" class="input-cyber text-sm" required>
+                            <input type="tel" name="buyer_phone" placeholder="0772 123 456" class="input-cyber text-sm" required>
+                            <p class="mt-1 text-xs text-slate-500">{{ config('ticketing.momo.provider_hint') }}</p>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
@@ -138,7 +161,7 @@
                         </div>
 
                         <p class="text-xs text-slate-500">
-                            Platform fee {{ rtrim(rtrim(number_format($commissionBps / 100, 2), '0'), '.') }}% is deducted from the organizer's share. You pay the ticket price.
+                            Platform fee {{ \App\Support\Money::percent($listingFeeBps) }} is deducted from the organizer's share. You pay the ticket price.
                         </p>
 
                         @guest
@@ -146,7 +169,7 @@
                         @endguest
 
                         <button class="btn-neon w-full rounded-xl px-4 py-2.5 text-sm" @guest disabled @endguest>
-                            Confirm &amp; pay
+                            Request MoMo PIN Prompt
                         </button>
                     </form>
                 </div>
@@ -157,6 +180,34 @@
 @endsection
 
 @push('scripts')
+<script type="application/ld+json">
+{!! json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => $listing->isEvent() ? 'Event' : 'Service',
+    'name' => $listing->title,
+    'description' => $listing->description,
+    'startDate' => $listing->starts_at?->toIso8601String(),
+    'endDate' => $listing->ends_at?->toIso8601String(),
+    'eventStatus' => 'https://schema.org/EventScheduled',
+    'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+    'organizer' => [
+        '@type' => 'Organization',
+        'name' => $listing->organizer?->business_name,
+    ],
+    'image' => $listing->coverImageUrl(),
+    'location' => [
+        '@type' => 'Place',
+        'name' => $venueLabel,
+        'address' => trim(implode(', ', array_filter([$listing->venue_address, $listing->venue, $listing->city, $listing->region, 'Uganda']))),
+    ],
+    'offers' => [
+        '@type' => 'Offer',
+        'priceCurrency' => 'UGX',
+        'availability' => 'https://schema.org/InStock',
+        'url' => route('events.show', $listing->slug),
+    ],
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}
+</script>
 <script>
     function toggleAccordion(id) {
         const el = document.getElementById(id);

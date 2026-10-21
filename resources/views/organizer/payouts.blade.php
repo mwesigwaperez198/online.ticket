@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Wallet & payouts — Pulse Tickets')
+@section('title', 'Wallet & payouts — Novara Tickets')
 
 @section('content')
 <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -10,15 +10,15 @@
     <div class="mt-8 grid gap-4 sm:grid-cols-3">
         <div class="panel px-5 py-4">
             <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Available balance</p>
-            <p class="mt-2 font-display text-2xl font-black text-acid">GHS {{ number_format(($wallet?->balance_minor ?? 0) / 100, 2) }}</p>
+            <p class="mt-2 font-display text-2xl font-black text-acid">@money(($wallet?->balance_minor ?? 0))</p>
         </div>
         <div class="panel px-5 py-4">
             <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Lifetime earned</p>
-            <p class="mt-2 font-display text-2xl font-black text-neon">GHS {{ number_format(($wallet?->lifetime_earned_minor ?? 0) / 100, 2) }}</p>
+            <p class="mt-2 font-display text-2xl font-black text-neon">@money(($wallet?->lifetime_earned_minor ?? 0))</p>
         </div>
         <div class="panel px-5 py-4">
             <p class="text-[.7rem] uppercase tracking-wider text-slate-500">Refunded</p>
-            <p class="mt-2 font-display text-2xl font-black text-pulse">GHS {{ number_format(($wallet?->lifetime_refunded_minor ?? 0) / 100, 2) }}</p>
+            <p class="mt-2 font-display text-2xl font-black text-pulse">@money(($wallet?->lifetime_refunded_minor ?? 0))</p>
         </div>
     </div>
 
@@ -34,8 +34,8 @@
                                 <td><span class="pill {{ $tx->type === 'sale' ? 'pill-paid' : ($tx->type === 'refund' ? 'pill-closed' : 'pill-info') }}">{{ $tx->type }}</span></td>
                                 <td class="text-slate-300">{{ $tx->memo }}</td>
                                 <td class="text-xs text-slate-500">{{ $tx->direction }}</td>
-                                <td class="{{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-300' }}">GHS {{ number_format(abs($tx->amount_minor) / 100, 2) }}</td>
-                                <td class="text-slate-400">GHS {{ number_format(($tx->balance_after ?? 0) / 100, 2) }}</td>
+                                <td class="{{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-300' }}">@money(abs($tx->amount_minor))</td>
+                                <td class="text-slate-400">@money(($tx->balance_after ?? 0))</td>
                                 <td class="text-xs text-slate-500">{{ $tx->created_at->format('d M H:i') }}</td>
                             </tr>
                         @empty
@@ -57,7 +57,7 @@
             <form method="POST" action="{{ route('organizer.payouts.store') }}" class="mt-4 space-y-3">
                 @csrf
                 <div>
-                    <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Amount (GHS)</label>
+                    <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Amount (UGX)</label>
                     <input type="number" step="0.01" min="1" max="{{ number_format(($wallet?->balance_minor ?? 0) / 100, 2) }}" name="amount" required class="input-cyber text-sm">
                 </div>
                 <div>

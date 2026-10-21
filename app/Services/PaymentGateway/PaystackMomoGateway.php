@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\PaymentGateway;
 
 use App\Services\PaymentGateway\Contracts\MomoGateway;
+use App\Support\Money;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -13,6 +14,7 @@ final class PaystackMomoGateway implements MomoGateway
     public function __construct(
         private readonly string $secretKey,
         private readonly string $baseUrl = 'https://api.paystack.co',
+        private readonly string $currency = 'UGX',
     ) {}
 
     public function name(): string
@@ -22,10 +24,12 @@ final class PaystackMomoGateway implements MomoGateway
 
     public function initialize(array $payload): array
     {
+        $currency = strtoupper((string) ($payload['currency'] ?? $this->currency));
+
         $body = [
             'email' => $payload['email'],
-            'amount' => (int) $payload['amount_minor'],
-            'currency' => $payload['currency'] ?? 'GHS',
+            'amount' => Money::toGatewayAmount((int) $payload['amount_minor'], $currency),
+            'currency' => $currency,
             'reference' => $payload['tx_ref'],
             'callback_url' => $payload['callback_url'],
             'metadata' => $payload['metadata'] ?? [],
@@ -65,14 +69,21 @@ final class PaystackMomoGateway implements MomoGateway
 
         $data = $response->json('data');
 
-        return is_array($data) ? $data : null;
+        if (! is_array($data)) {
+            return null;
+        }
+
+        $data['amount'] = Money::fromGatewayAmount((int) ($data['amount'] ?? 0), $this->currency);
+        $data['currency'] = strtoupper((string) ($data['currency'] ?? $this->currency));
+
+        return $data;
     }
 
     public function refund(string $gatewayReference, int $amountMinor, ?string $reason = null): bool
     {
         $response = $this->client()->post('/refund', [
             'reference' => $gatewayReference,
-            'amount' => (int) $amountMinor,
+            'amount' => Money::toGatewayAmount($amountMinor, $this->currency),
             'reason' => $reason ?? 'Buyer requested refund',
         ]);
 
