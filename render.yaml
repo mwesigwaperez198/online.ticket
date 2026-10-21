@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: ticketing-app
+    runtime: docker
+    plan: starter
+    healthCheckPath: /up
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_NAME
+        value: Pulse Tickets
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        sync: false
+      - key: APP_KEY
+        sync: false
+      - key: APP_TIMEZONE
+        value: Africa/Accra
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /var/data/database.sqlite
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: CACHE_STORE
+        value: database
+      - key: SESSION_DRIVER
+        value: database
+      - key: MAIL_MAILER
+        value: log
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false
+      - key: PAYSTACK_CHANNELS
+        value: mobile_money
+      - key: PAYSTACK_WEBHOOK_URL
+        sync: false
+      - key: APP_NOTIFICATION_MAIL_FROM
+        sync: false
+    disk:
+      name: ticketing-data
+      mountPath: /var/data
+      sizeGB: 1
