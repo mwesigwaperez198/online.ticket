@@ -261,6 +261,30 @@ final class SecurityHardeningTest extends TestCase
         $this->assertInstanceOf(UnavailableMomoGateway::class, $this->app->make(MomoGateway::class));
     }
 
+    public function test_a_checkout_that_cannot_start_the_payment_releases_the_held_ticket(): void
+    {
+        $organizer = $this->createOrganizer();
+        $listing = $this->createListing($organizer);
+        $tier = $this->createTicketType($listing, ['capacity' => 5]);
+        $buyer = $this->createBuyer();
+
+        // A deployment without credentials must not be able to reserve a seat.
+        $this->app->instance(MomoGateway::class, new UnavailableMomoGateway);
+
+        $this->actingAs($buyer)->post(route('checkout.store'), [
+            'listing_id' => $listing->id,
+            'ticket_type_id' => $tier->id,
+            'quantity' => 2,
+            'buyer_name' => 'Ivan Kaggwa',
+            'buyer_email' => $buyer->email,
+            'buyer_phone' => '0771234567',
+            'momo_provider' => 'mtn',
+        ])->assertRedirect()->assertSessionHas('error');
+
+        $this->assertSame(0, (int) $tier->fresh()->held_count);
+        $this->assertSame('failed', Order::query()->firstOrFail()->status);
+    }
+
     public function test_a_buyer_cannot_read_another_buyers_order(): void
     {
         $organizer = $this->createOrganizer();

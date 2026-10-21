@@ -69,7 +69,8 @@ final class CheckoutController extends Controller
         } catch (\Throwable $e) {
             Log::error('payment initialization failed', ['tx_ref' => $order->tx_ref, 'error' => $e->getMessage()]);
 
-            $order->forceFill(['status' => 'failed', 'cancelled_at' => now()])->save();
+            // The buyer never got a prompt, so the reserved seat goes back.
+            $checkout->releaseHold($order);
 
             return back()->with('error', 'We could not start the Mobile Money checkout. Please try again.');
         }

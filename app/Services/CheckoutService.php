@@ -73,6 +73,39 @@ final class CheckoutService
         }, 3);
     }
 
+    /**
+     * Release the inventory held by an order that never reached the gateway.
+     *
+     * A checkout that cannot even start the Mobile Money request must not
+     * keep a seat reserved: the hold would only be released when the order
+     * expires, and every failed attempt would eat into the live capacity.
+     */
+    public function releaseHold(Order $order): void
+    {
+        DB::transaction(function () use ($order): void {
+            /** @var Order|null $locked */
+            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+
+            if ($locked === null || $locked->status !== 'pending') {
+                return;
+            }
+
+            $item = OrderItem::query()->where('order_id', $locked->id)->first();
+
+            if ($item !== null) {
+                if ($item->ticket_type_id !== null) {
+                    $this->inventory->releaseTicketType($item->ticket_type_id, $locked->quantity);
+                }
+
+                if ($item->service_slot_id !== null) {
+                    $this->inventory->releaseServiceSlot($item->service_slot_id, $locked->quantity);
+                }
+            }
+
+            $locked->forceFill(['status' => 'failed', 'cancelled_at' => now()])->save();
+        }, 2);
+    }
+
     public static function generateTxRef(): string
     {
         do {
