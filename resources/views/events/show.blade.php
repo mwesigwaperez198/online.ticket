@@ -14,7 +14,18 @@
         <div class="grid gap-10 lg:grid-cols-[1.25fr_1fr]">
             <div>
                 @if($listing->coverImageUrl())
-                    <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="mb-6 w-full rounded-2xl border border-edge/80 object-cover shadow-[0_0_40px_rgba(0,255,178,0.12)]" loading="lazy">
+                    <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="mb-6 aspect-video w-full rounded-xl border border-edge/80 object-cover shadow-[0_0_40px_rgba(0,255,178,0.12)]" loading="lazy">
+                @endif
+
+                @if($listing->videoEmbed())
+                    <div class="mb-6 overflow-hidden rounded-xl border border-edge/80">
+                        <iframe src="{{ $listing->videoEmbed()['url'] }}"
+                                title="{{ $listing->title }} trailer"
+                                class="aspect-video w-full"
+                                loading="lazy"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowfullscreen></iframe>
+                    </div>
                 @endif
 
                 <div class="flex flex-wrap items-center gap-2">

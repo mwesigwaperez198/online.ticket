@@ -175,6 +175,8 @@
                         <a href="{{ route('buyer.tickets') }}" class="text-sm text-slate-300 hover:text-neon transition">My Tickets</a>
                         @if(auth()->user()->isOrganizer())
                             <a href="{{ route('organizer.dashboard') }}" class="text-sm text-slate-300 hover:text-neon transition">Organizer</a>
+                        @elseif(! auth()->user()->isAdmin())
+                            <a href="{{ route('seller.onboarding') }}" class="text-sm text-neon hover:text-acid transition">Start selling</a>
                         @endif
                         @if(auth()->user()->isAdmin())
                             <a href="{{ route('admin.dashboard') }}" class="text-sm text-slate-300 hover:text-pulse transition">Admin CMS</a>

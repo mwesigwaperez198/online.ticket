@@ -5,7 +5,7 @@
 @section('content')
 <section class="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-16">
     <div class="panel w-full p-8">
-        <span class="pill pill-info">{{ $provider }}</span>
+        @include('partials.momo-provider-badge', ['providerKey' => $providerKey, 'label' => $provider])
         <h1 class="mt-4 font-display text-2xl font-black">Check your phone</h1>
         <p class="mt-2 text-sm text-slate-400">
             We have sent a Mobile Money request to <span class="font-mono text-slate-200">{{ $order->buyer_phone }}</span>.

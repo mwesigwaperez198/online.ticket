@@ -138,6 +138,7 @@ final class CheckoutController extends Controller
         return view('checkout.prompt', [
             'order' => $order,
             'provider' => (string) config('ticketing.momo.providers.'.$order->momo_provider, 'Mobile Money'),
+            'providerKey' => (string) $order->momo_provider,
         ]);
     }
 

@@ -71,6 +71,15 @@
                 numbers after the decimal point.
             </p>
 
+            <div>
+                <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Trailer video link (optional)</label>
+                <input type="url" name="video_url" value="{{ old('video_url', $listing->video_url) }}"
+                       placeholder="https://www.youtube.com/watch?v=…" class="input-cyber text-sm">
+                <p class="mt-1 text-xs text-slate-500">
+                    Paste a YouTube or Vimeo link. It plays inline on your event page as a trailer.
+                </p>
+            </div>
+
             <div class="grid gap-4 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Starts at</label>
@@ -145,7 +154,7 @@
             </div>
 
             @if($listing->coverImageUrl())
-                <img src="{{ $listing->coverImageUrl() }}" alt="Current banner" class="w-full max-w-md rounded-xl border border-edge/80 object-cover">
+                <img src="{{ $listing->coverImageUrl() }}" alt="Current banner" class="aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
             @endif
 
             <div>

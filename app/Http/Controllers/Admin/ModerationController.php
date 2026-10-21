@@ -27,4 +27,18 @@ final class ModerationController extends Controller
 
         return back()->with('status', 'Listing status updated to '.$validated['status'].'.');
     }
+
+    /**
+     * Toggle a published listing in and out of the curated "Our Picks" row.
+     */
+    public function feature(Listing $listing): RedirectResponse
+    {
+        $listing->forceFill(['featured' => ! $listing->featured])->save();
+
+        Audit::log('listing.featured_toggled', $listing, ['featured' => $listing->featured]);
+
+        return back()->with('status', $listing->featured
+            ? $listing->title.' now appears in Our Picks.'
+            : $listing->title.' was removed from Our Picks.');
+    }
 }

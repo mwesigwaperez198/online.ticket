@@ -62,6 +62,12 @@ final class CmsController extends Controller
             'maxGross' => $maxGross,
             'pendingOrganizers' => Organizer::query()->with('user')->where('status', 'pending')->limit(8)->get(),
             'pendingListings' => Listing::query()->with('organizer')->where('status', 'pending')->limit(8)->get(),
+            'featuredListings' => Listing::query()->with('organizer')
+                ->whereIn('status', ['published', 'live'])
+                ->orderByDesc('featured')
+                ->orderByDesc('starts_at')
+                ->limit(12)
+                ->get(),
             'recentOrders' => Order::query()->with(['listing', 'user'])->orderByDesc('created_at')->limit(10)->get(),
             'recentLedger' => WalletTransaction::query()->with('organizer')->orderByDesc('created_at')->limit(10)->get(),
             'commissionBps' => (int) setting('platform_commission_bps', 2000),

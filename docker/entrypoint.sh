@@ -27,12 +27,33 @@ log "PHP $(php -r 'echo PHP_VERSION;') on port ${PORT:-10000}."
 # ---------------------------------------------------------------------------
 # 2. Application key
 # ---------------------------------------------------------------------------
+# A missing APP_KEY used to mint a fresh random key on every container boot.
+# Render free instances restart and sleep constantly, so every restart issued a
+# new key, the encrypted session cookie could no longer be decrypted and every
+# signed-in user was silently logged out. The key is now persisted on the
+# Render disk when the environment does not provide one, so it survives
+# restarts and redeploys. Setting APP_KEY in Render still wins and remains the
+# recommended configuration.
 if [ -z "${APP_KEY:-}" ]; then
-  APP_KEY="base64:$(head -c 32 /dev/urandom | base64 | tr -d '\n')"
-  export APP_KEY
-  warn "APP_KEY is not set in the Render environment."
-  warn "A key was generated for this container only; it changes on every restart"
-  warn "and invalidates sessions and signed URLs. Set APP_KEY in Render to fix it."
+  KEY_FILE=/var/data/app.key
+
+  if [ -s "$KEY_FILE" ]; then
+    APP_KEY="$(cat "$KEY_FILE")"
+    export APP_KEY
+    log "APP_KEY restored from $KEY_FILE."
+  else
+    APP_KEY="base64:$(head -c 32 /dev/urandom | base64 | tr -d '\n')"
+    export APP_KEY
+
+    if grep -q " /var/data " /proc/mounts; then
+      printf '%s\n' "$APP_KEY" > "$KEY_FILE"
+      log "APP_KEY generated and persisted to $KEY_FILE."
+    else
+      warn "APP_KEY is not set in the Render environment and no disk is mounted"
+      warn "at /var/data. A key was generated for this container only; it changes"
+      warn "on every restart and signs every user out. Set APP_KEY in Render."
+    fi
+  fi
 fi
 
 # Render injects real environment variables, which always win over a .env file.

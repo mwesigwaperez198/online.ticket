@@ -19,8 +19,8 @@ class Listing extends Model
     protected $fillable = [
         'organizer_id', 'type', 'slug', 'title', 'description', 'venue', 'venue_address',
         'city', 'region', 'latitude', 'longitude',
-        'cover_image', 'starts_at', 'ends_at', 'price_from_minor', 'status', 'allow_refunds',
-        'refund_window_hours', 'max_per_order', 'meta', 'published_at',
+        'cover_image', 'video_url', 'starts_at', 'ends_at', 'price_from_minor', 'status',
+        'featured', 'allow_refunds', 'refund_window_hours', 'max_per_order', 'meta', 'published_at',
     ];
 
     protected function casts(): array
@@ -30,6 +30,7 @@ class Listing extends Model
             'ends_at' => 'datetime',
             'published_at' => 'datetime',
             'allow_refunds' => 'boolean',
+            'featured' => 'boolean',
             'meta' => 'array',
             'price_from_minor' => 'integer',
             'max_per_order' => 'integer',
@@ -102,6 +103,14 @@ class Listing extends Model
         return $query->whereHas('organizer', fn (Builder $q) => $q->where('user_id', $userId));
     }
 
+    /**
+     * Listings hand-picked for the curated "Our Picks" row on the home page.
+     */
+    public function scopeFeatured(Builder $query): Builder
+    {
+        return $query->where('featured', true);
+    }
+
     public function isEvent(): bool
     {
         return $this->type === 'event';
@@ -136,5 +145,73 @@ class Listing extends Model
         }
 
         return Storage::disk('public')->url($this->cover_image);
+    }
+
+    /**
+     * A hardened embed URL for an organizer-supplied trailer, or null.
+     *
+     * The raw URL is never trusted as an iframe source. The host is parsed and
+     * must exactly match an allow list of known video platforms, and only the
+     * video identifier is carried across, so a crafted URL can never introduce
+     * a new host, path or query into the embed.
+     *
+     * @return array{url: string, host: string}|null
+     */
+    public function videoEmbed(): ?array
+    {
+        if (! is_string($this->video_url) || $this->video_url === '') {
+            return null;
+        }
+
+        $parts = parse_url($this->video_url);
+
+        if ($parts === false || ! isset($parts['scheme'], $parts['host'])) {
+            return null;
+        }
+
+        if (! in_array(strtolower((string) $parts['scheme']), ['http', 'https'], true)) {
+            return null;
+        }
+
+        $host = strtolower((string) $parts['host']);
+        $path = trim((string) ($parts['path'] ?? ''), '/');
+        $query = [];
+
+        if (isset($parts['query'])) {
+            parse_str($parts['query'], $query);
+        }
+
+        // YouTube: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/shorts/ID.
+        if (in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'], true)) {
+            if ($host === 'youtu.be') {
+                $id = $path;
+            } elseif (is_string($query['v'] ?? null)) {
+                $id = $query['v'];
+            } else {
+                $id = explode('/', $path)[1] ?? '';
+            }
+
+            if ($this->validVideoId($id)) {
+                return ['url' => 'https://www.youtube-nocookie.com/embed/'.$id, 'host' => 'YouTube'];
+            }
+
+            return null;
+        }
+
+        // Vimeo: vimeo.com/123456789
+        if (in_array($host, ['vimeo.com', 'www.vimeo.com'], true) && preg_match('/^\d+$/', $path) === 1) {
+            return ['url' => 'https://player.vimeo.com/video/'.$path, 'host' => 'Vimeo'];
+        }
+
+        return null;
+    }
+
+    /**
+     * A video identifier is a short, conservative token: no traversal, no
+     * markup, no separators.
+     */
+    private function validVideoId(string $id): bool
+    {
+        return preg_match('/^[A-Za-z0-9_-]{6,20}$/', $id) === 1;
     }
 }

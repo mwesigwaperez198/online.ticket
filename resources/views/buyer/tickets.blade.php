@@ -12,6 +12,16 @@
         <a href="{{ route('buyer.orders') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">Order history</a>
     </div>
 
+    @if(auth()->user() !== null && ! auth()->user()->isOrganizer() && ! auth()->user()->isAdmin())
+        <div class="panel mt-6 flex flex-wrap items-center justify-between gap-4 border-neon/40 p-5">
+            <div>
+                <p class="font-display text-lg font-bold text-neon">Your account can sell, too</p>
+                <p class="mt-1 text-sm text-slate-400">Open a seller workspace with your same sign-in and publish events, services or gate passes.</p>
+            </div>
+            <a href="{{ route('seller.onboarding') }}" class="btn-neon rounded-xl px-5 py-2.5 text-sm">Start selling</a>
+        </div>
+    @endif
+
     <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         @forelse($tickets as $ticket)
             @php

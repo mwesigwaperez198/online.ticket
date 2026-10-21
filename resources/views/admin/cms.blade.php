@@ -160,6 +160,41 @@
         </div>
     </div>
 
+    <div class="mt-8 panel overflow-hidden">
+        <div class="flex items-center justify-between border-b border-edge/70 px-5 py-4">
+            <div>
+                <h2 class="font-display text-lg font-bold">Our Picks curation</h2>
+                <p class="mt-0.5 text-xs text-slate-500">Featured listings lead the home page. The row falls back to the soonest events when fewer than four are featured.</p>
+            </div>
+            <span class="pill pill-info">{{ $featuredListings->where('featured')->count() }}/4 featured</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="data-table w-full min-w-[520px]">
+                <thead><tr><th>Listing</th><th>Organizer</th><th>When</th><th>Status</th><th>Pick</th></tr></thead>
+                <tbody>
+                    @forelse($featuredListings as $listing)
+                        <tr>
+                            <td class="text-slate-200">{{ $listing->title }}</td>
+                            <td class="text-slate-400">{{ $listing->organizer?->business_name }}</td>
+                            <td class="text-slate-400">{{ $listing->starts_at->format('d M Y') }}</td>
+                            <td><span class="pill {{ $listing->featured ? 'pill-info' : 'pill-pending' }}">{{ $listing->status }}</span></td>
+                            <td>
+                                <form method="POST" action="{{ route('admin.listings.feature', $listing) }}">
+                                    @csrf
+                                    <button class="text-xs uppercase tracking-wider {{ $listing->featured ? 'text-slate-500 hover:text-pulse' : 'text-neon hover:underline' }}">
+                                        {{ $listing->featured ? 'Remove' : 'Feature' }}
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="py-10 text-center text-sm text-slate-500">No published listings to curate yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <div class="mt-8 grid gap-6 lg:grid-cols-2">
         <div class="panel overflow-hidden">
             <h2 class="border-b border-edge/70 px-5 py-4 font-display text-lg font-bold">Recent orders</h2>

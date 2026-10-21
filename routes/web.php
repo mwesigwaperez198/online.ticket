@@ -23,6 +23,7 @@ use App\Http\Controllers\Organizer\DashboardController as OrganizerDashboardCont
 use App\Http\Controllers\Organizer\ListingController;
 use App\Http\Controllers\Organizer\PayoutController;
 use App\Http\Controllers\Organizer\PayoutSettingsController;
+use App\Http\Controllers\Seller\OnboardingController;
 use App\Http\Controllers\SeoController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +40,7 @@ Route::middleware('guest')->group(function (): void {
 
 // Public marketplace funnel.
 Route::get('/', [MarketplaceController::class, 'index'])->name('home');
+Route::get('/events/load-more', [MarketplaceController::class, 'loadMore'])->name('events.load-more');
 Route::get('/events/{slug}', [MarketplaceController::class, 'show'])->name('events.show');
 
 // Search engine surfaces.
@@ -62,6 +64,13 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/my-orders', [BuyerOrderController::class, 'index'])->name('buyer.orders');
     Route::get('/my-orders/{order}', [BuyerOrderController::class, 'show'])->name('buyer.orders.show');
     Route::post('/my-orders/{order}/refund', [BuyerOrderController::class, 'refund'])->name('buyer.orders.refund');
+
+    // A buyer is never locked out of selling: any signed-in account can open
+    // a seller workspace. No role gate here on purpose — capability comes
+    // from holding an organizer profile, not from a role string chosen at
+    // signup.
+    Route::get('/sell', [OnboardingController::class, 'create'])->name('seller.onboarding');
+    Route::post('/sell', [OnboardingController::class, 'store'])->middleware('throttle:login')->name('seller.onboarding.store');
 
     Route::middleware('role:organizer')->prefix('organizer')->name('organizer.')->group(function (): void {
         Route::get('/', [OrganizerDashboardController::class, 'index'])->name('dashboard');
@@ -89,6 +98,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/approvals', [OrganizerApprovalController::class, 'index'])->name('approvals.index');
         Route::post('/approvals/{organizer}', [OrganizerApprovalController::class, 'update'])->name('approvals.update');
         Route::post('/listings/{listing}/moderate', [ModerationController::class, 'update'])->name('listings.moderate');
+        Route::post('/listings/{listing}/feature', [ModerationController::class, 'feature'])->name('listings.feature');
         Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::post('/orders/{order}/refund', [AdminOrderController::class, 'refund'])->name('orders.refund');
