@@ -25,4 +25,14 @@ return [
         'hold_minutes' => (int) env('HOLD_MINUTES', 10),
         'demo_mode' => env('DEMO_MODE', false),
     ],
+
+    /*
+     * Administrator account provisioned by `php artisan ticketing:install`.
+     * Keep the password in the Render environment (ADMIN_PASSWORD) — never in
+     * the repository. The fallback password is for local development only.
+     */
+    'admin' => [
+        'email' => env('ADMIN_EMAIL', 'admin@pulsetickets.test'),
+        'password' => env('ADMIN_PASSWORD', ''),
+    ],
 ];

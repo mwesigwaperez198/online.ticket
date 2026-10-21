@@ -134,12 +134,13 @@ Before relying on a package's API, confirm its installed version:
 
 # Pulse Tickets — project context
 
-- Stack: Laravel 13, PHP 8.3+, Blade + Tailwind Play CDN (no Node/Vite build step), SQLite (Postgres-ready), Docker on Render.
+- Stack: Laravel 13, PHP 8.4+ (hard requirement — `symfony/http-foundation` 8.x needs >= 8.4.1 and uses property hooks), Blade + Tailwind Play CDN (no Node/Vite build step), SQLite (Postgres-ready), Docker on Render.
 - The Laravel app **is** the repository root. The legacy DocuDrop PHP app lives one directory above the repo and is never committed.
 - Mobile Money only (MTN / Airtel / Telecel) through the `App\Services\PaymentGateway\Contracts\MomoGateway` contract. `DemoMomoGateway` is bound automatically while `PAYSTACK_SECRET_KEY` is empty.
 - Money is integer pesewas. Commission resolves organizer override → `settings.platform_commission_bps` → snapshotted onto the order as `commission_bps_applied`.
 - The oversell guard is the conditional atomic `UPDATE … WHERE capacity - sold_count - held_count >= qty` in `App\Services\Inventory`, inside `DB::transaction` with `lockForUpdate()`.
-- Deploy: push to `main` → Render auto-rebuilds from the root `Dockerfile` → `docker/entrypoint.sh` runs `package:discover`, `migrate --force`, `storage:link`, `config:cache`, `route:cache`.
+- Deploy: push to `main` → Render auto-rebuilds from the root `Dockerfile` → `docker/entrypoint.sh` validates the runtime, provisions `APP_KEY`, migrates, runs `ticketing:install`, caches config/routes/views and boots Apache.
+- The administrator account is provisioned by `php artisan ticketing:install` from the `ADMIN_EMAIL` / `ADMIN_PASSWORD` environment variables; the demo seed only runs while the database is empty.
 
 ## Local credentials and deploy notes
 

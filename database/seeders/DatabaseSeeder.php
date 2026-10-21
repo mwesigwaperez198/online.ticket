@@ -24,12 +24,15 @@ class DatabaseSeeder extends Seeder
         Setting::put('hold_minutes', (string) (int) config('ticketing.ticketing.hold_minutes', 10), 'general', 'integer');
         Setting::flush();
 
+        $adminEmail = trim((string) config('ticketing.admin.email', 'admin@pulsetickets.test'));
+        $adminPassword = (string) config('ticketing.admin.password', '');
+
         $admin = User::query()->updateOrCreate(
-            ['email' => 'admin@pulsetickets.test'],
+            ['email' => $adminEmail],
             [
                 'name' => 'Platform Admin',
                 'phone' => '0240000001',
-                'password' => Hash::make('password'),
+                'password' => Hash::make($adminPassword !== '' ? $adminPassword : 'password'),
                 'role' => 'admin',
                 'status' => 'active',
                 'email_verified_at' => now(),
