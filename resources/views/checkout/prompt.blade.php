@@ -1,101 +1,131 @@
 @extends('layouts.app')
 
-@section('title', 'Authorise your Mobile Money payment — Novara Tickets')
+@section('title', 'Confirm your Mobile Money payment — Novara Tickets')
 
 @section('content')
-<section class="mx-auto flex min-h-[70vh] max-w-md items-center px-4 py-16">
-    <div class="panel w-full p-8">
-        @include('partials.momo-provider-badge', ['providerKey' => $providerKey, 'label' => $provider])
-        <h1 class="mt-4 font-display text-2xl font-black">Check your phone</h1>
-        <p class="mt-2 text-sm text-slate-400">
-            We have sent a Mobile Money request to <span class="font-mono text-slate-200">{{ $order->buyer_phone }}</span>.
-            Open the MTN prompt on your phone, enter your PIN and confirm the payment.
-        </p>
+<section class="min-h-[80vh] flex items-center justify-center px-4 py-16">
+    <div class="w-full max-w-md animate-fade-up">
 
-        <dl class="mt-6 space-y-2 text-sm">
-            <div class="flex justify-between"><dt class="text-slate-500">Reference</dt><dd class="font-mono text-slate-200">{{ $order->tx_ref }}</dd></div>
-            <div class="flex justify-between"><dt class="text-slate-500">Event</dt><dd class="text-slate-200">{{ $order->listing->title }}</dd></div>
-            <div class="flex justify-between"><dt class="text-slate-500">Amount</dt><dd class="font-display font-bold text-neon">@money($order->total_minor)</dd></div>
-            <div class="flex justify-between"><dt class="text-slate-500">MoMo number</dt><dd class="text-slate-200">{{ $order->buyer_phone }}</dd></div>
-        </dl>
-
-        <ol class="mt-6 space-y-2 text-sm text-slate-400">
-            <li>1. Your phone rings (or a USSD prompt appears).</li>
-            <li>2. Enter your Mobile Money PIN and approve <span class="text-neon">@money($order->total_minor)</span>.</li>
-            <li>3. This page updates itself as soon as MTN confirms the charge.</li>
-        </ol>
-
-        <div id="status-box" class="mt-6 rounded-xl border border-slate-700/60 bg-slate-900/60 px-4 py-3 text-sm text-slate-300">
-            <span class="inline-block h-2 w-2 animate-pulse rounded-full bg-amber"></span>
-            <span id="status-text" class="ml-2">Waiting for your Mobile Money confirmation…</span>
+        {{-- Phone icon with pulse ring --}}
+        <div class="flex justify-center mb-8">
+            <div class="relative">
+                <div class="h-20 w-20 rounded-full bg-gradient-to-br from-neon/20 to-pulse/20 border border-neon/30 flex items-center justify-center pulse-ring">
+                    <svg class="h-9 w-9 text-neon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"/>
+                    </svg>
+                </div>
+            </div>
         </div>
 
-        <a href="{{ route('checkout.status', ['tx_ref' => $order->tx_ref]) }}" id="check-link" class="btn-ghost mt-4 block rounded-xl px-4 py-3 text-center">Check payment status</a>
+        <div class="text-center mb-6">
+            <h1 class="font-display text-2xl font-black text-slate-100">Check your phone</h1>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">
+                A Mobile Money request was sent to
+                <span class="font-mono text-slate-200 font-medium">{{ $order->buyer_phone }}</span>.
+                Enter your PIN to confirm.
+            </p>
+        </div>
 
-        <p class="mt-4 text-center text-xs text-slate-500">
-            Never approve a Mobile Money prompt you did not start. Novara never asks for your PIN.
-        </p>
+        <div class="panel p-6 space-y-4">
+
+            {{-- Order summary --}}
+            <div class="space-y-2.5">
+                @foreach([
+                    ['Event', $order->listing->title],
+                    ['Reference', $order->tx_ref],
+                    ['MoMo number', $order->buyer_phone],
+                ] as [$label, $value])
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-500">{{ $label }}</span>
+                        <span class="text-slate-200 font-mono text-xs">{{ $value }}</span>
+                    </div>
+                @endforeach
+                <div class="flex items-center justify-between pt-2 border-t border-edge/60">
+                    <span class="text-slate-500 text-sm">Amount</span>
+                    <span class="font-display font-bold text-neon text-xl">@money($order->total_minor)</span>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            {{-- Steps --}}
+            <div class="space-y-2.5">
+                @foreach([
+                    ['1', 'Your phone rings or a USSD prompt appears'],
+                    ['2', 'Enter your Mobile Money PIN and approve'],
+                    ['3', 'This page updates automatically once MTN confirms'],
+                ] as [$n, $step])
+                    <div class="flex items-start gap-3 text-sm text-slate-400">
+                        <span class="h-5 w-5 rounded-full bg-neon/10 border border-neon/30 text-neon text-xs flex items-center justify-center shrink-0 font-bold mt-0.5">{{ $n }}</span>
+                        {{ $step }}
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Live status --}}
+            <div id="status-box" class="rounded-xl border border-edge bg-void/60 px-4 py-3 flex items-center gap-3 text-sm text-slate-400">
+                <span class="h-2 w-2 rounded-full bg-amber animate-pulse shrink-0"></span>
+                <span id="status-text">Waiting for your confirmation…</span>
+            </div>
+
+            <button id="check-btn" onclick="poll()"
+                    class="btn-outline w-full rounded-xl py-2.5 text-sm">
+                Check status now
+            </button>
+
+            <p class="text-center text-xs text-slate-600">
+                Never approve a prompt you didn't start. Novara never asks for your PIN.
+            </p>
+        </div>
     </div>
 </section>
 @endsection
 
 @push('scripts')
 <script>
-    const statusBox = document.getElementById('status-box');
-    const statusText = document.getElementById('status-text');
-    const checkLink = document.getElementById('check-link');
-    const statusUrl = @json(route('checkout.status', ['tx_ref' => $order->tx_ref]));
-    const orderUrl = @json(route('buyer.orders.show', $order));
+const statusBox  = document.getElementById('status-box');
+const statusText = document.getElementById('status-text');
+const statusUrl  = @json(route('checkout.status', ['tx_ref' => $order->tx_ref]));
+const orderUrl   = @json(route('buyer.orders.show', $order));
 
-    function render(message, tone) {
-        const tones = {
-            pending: ['border-slate-700/60', 'bg-slate-900/60', 'text-slate-300'],
-            paid: ['border-acid/60', 'bg-acid/10', 'text-acid'],
-            failed: ['border-red-500/60', 'bg-red-500/10', 'text-red-300'],
-        };
-        const [border, bg, text] = tones[tone] || tones.pending;
-        statusBox.className = 'mt-6 rounded-xl border px-4 py-3 text-sm ' + border + ' ' + bg + ' ' + text;
-        statusText.className = 'ml-2';
-        statusText.textContent = message;
-    }
+function render(msg, tone) {
+    const map = {
+        pending: 'border-edge bg-void/60 text-slate-400',
+        paid:    'border-acid/40 bg-acid/8 text-acid',
+        failed:  'border-red-500/40 bg-red-500/8 text-red-400',
+    };
+    statusBox.className = 'rounded-xl border px-4 py-3 flex items-center gap-3 text-sm ' + (map[tone] || map.pending);
+    statusText.textContent = msg;
+}
 
-    async function poll() {
-        try {
-            const response = await fetch(statusUrl, {
-                method: 'GET',
-                headers: { 'Accept': 'application/json' },
-            });
+async function poll() {
+    try {
+        const res  = await fetch(statusUrl, { headers: { Accept: 'application/json' } });
+        if (!res.ok) return;
+        const data = await res.json();
 
-            if (!response.ok) {
-                return;
-            }
-
-            const data = await response.json();
-
-            if (data.paid) {
-                render('Payment confirmed. Taking you to your tickets…', 'paid');
-                window.location.href = orderUrl;
-                return;
-            }
-
-            if (data.status === 'failed' || data.status === 'cancelled' || data.status === 'expired') {
-                render('This payment did not go through. Please start the checkout again.', 'failed');
-                checkLink.classList.add('hidden');
-                return;
-            }
-
-            render('Waiting for your Mobile Money confirmation…', 'pending');
-        } catch (e) {
-            render('We could not reach the server. We will keep trying.', 'pending');
+        if (data.paid) {
+            render('Payment confirmed — taking you to your tickets…', 'paid');
+            setTimeout(() => window.location.href = orderUrl, 1200);
+            return;
         }
+        if (['failed','cancelled','expired'].includes(data.status)) {
+            render('Payment did not go through. Please start checkout again.', 'failed');
+            return;
+        }
+        render('Waiting for your Mobile Money confirmation…', 'pending');
+    } catch {
+        render('Could not reach the server. Retrying…', 'pending');
     }
+}
 
-    checkLink.addEventListener('click', (event) => {
-        event.preventDefault();
-        poll();
-    });
-
-    poll();
-    window.setInterval(poll, 4000);
+poll();
+const timer = setInterval(async () => {
+    const res  = await fetch(statusUrl, { headers: { Accept: 'application/json' } }).catch(() => null);
+    if (!res || !res.ok) return;
+    const data = await res.json();
+    if (data.paid) { clearInterval(timer); render('Payment confirmed — taking you to your tickets…', 'paid'); setTimeout(() => window.location.href = orderUrl, 1200); }
+    else if (['failed','cancelled','expired'].includes(data.status)) { clearInterval(timer); render('Payment did not go through. Please start checkout again.', 'failed'); }
+}, 4000);
 </script>
 @endpush

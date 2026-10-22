@@ -5,43 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name', 'Novara Tickets'))</title>
-    <meta name="description" content="@yield('meta_description', 'Novara Tickets — Mobile Money ticketing and booking in Uganda. Buy event tickets, services and gate passes with '.implode(' or ', config('ticketing.momo.providers')).'.')">
-    <meta name="keywords" content="tickets Uganda, Mobile Money tickets, MTN MoMo Uganda, Airtel Money, event tickets Kampala, Novara Tickets">
-    <meta name="author" content="{{ config('ticketing.brand.company', 'Novara Tech Africa') }}">
+    <meta name="description" content="@yield('meta_description', 'Novara Tickets — buy event tickets across Uganda with MTN Mobile Money. Instant QR delivery.')">
     <meta name="robots" content="@yield('meta_robots', 'index, follow')">
     <link rel="canonical" href="@yield('canonical', url()->current())">
-
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="{{ config('app.name', 'Novara Tickets') }}">
     <meta property="og:title" content="@yield('title', config('app.name', 'Novara Tickets'))">
-    <meta property="og:description" content="@yield('meta_description', 'Mobile Money ticketing and booking for Uganda. Everything by Novara.')">
+    <meta property="og:description" content="@yield('meta_description', 'Mobile Money ticketing for Uganda.')">
     <meta property="og:url" content="@yield('canonical', url()->current())">
-    <meta property="og:locale" content="en_UG">
     <meta name="twitter:card" content="summary_large_image">
-
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' fill='%2322D3EE'>N</text></svg>">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        void: '#0B0F19',
-                        panel: '#111827',
-                        edge: '#1F2937',
-                        neon: '#22D3EE',
-                        pulse: '#F472B6',
-                        acid: '#A3E635',
-                        amber: '#FBBF24',
-                    },
-                    boxShadow: {
-                        glow: '0 0 40px -12px rgba(34,211,238,0.55)',
-                        pulse: '0 0 40px -12px rgba(244,114,182,0.55)',
+                        void: '#080C14',
+                        panel: '#0E1420',
+                        edge: '#1A2235',
+                        neon: '#00E5FF',
+                        pulse: '#FF4D8D',
+                        acid: '#AAFF00',
+                        amber: '#FFB800',
+                        muted: '#64748B',
                     },
                     fontFamily: {
-                        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+                        display: ['Space Grotesk', 'system-ui', 'sans-serif'],
                         body: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        glow: '0 0 50px -10px rgba(0,229,255,0.4)',
+                        'glow-pulse': '0 0 50px -10px rgba(255,77,141,0.4)',
+                        'glow-acid': '0 0 50px -10px rgba(170,255,0,0.3)',
                     },
                 }
             }
@@ -49,175 +46,251 @@
     </script>
     <style>
         :root { color-scheme: dark; }
+
         body {
-            background:
-                radial-gradient(1100px 600px at 12% -10%, rgba(34,211,238,.14), transparent 60%),
-                radial-gradient(900px 520px at 92% 0%, rgba(244,114,182,.14), transparent 55%),
-                #0B0F19;
-            color: #E5E7EB;
+            background-color: #080C14;
+            background-image:
+                radial-gradient(ellipse 80% 50% at 20% -5%, rgba(0,229,255,.1) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 85% 5%, rgba(255,77,141,.1) 0%, transparent 55%);
+            color: #CBD5E1;
             font-family: 'Inter', system-ui, sans-serif;
             min-height: 100vh;
         }
-        .font-display { font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif; }
+
+        .font-display { font-family: 'Space Grotesk', system-ui, sans-serif; }
+
         .panel {
-            background: linear-gradient(180deg, rgba(17,24,39,.92), rgba(11,15,25,.92));
-            border: 1px solid rgba(31,41,55,.9);
+            background: rgba(14,20,32,.85);
+            border: 1px solid rgba(26,34,53,.9);
             border-radius: 1rem;
-            box-shadow: 0 24px 60px -30px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.04);
+            backdrop-filter: blur(12px);
         }
-        .panel-hover { transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease; }
-        .panel-hover:hover {
-            transform: translateY(-4px);
-            border-color: rgba(34,211,238,.45);
-            box-shadow: 0 30px 70px -30px rgba(34,211,238,.35), inset 0 1px 0 rgba(255,255,255,.06);
+
+        .panel-lift {
+            transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
         }
+        .panel-lift:hover {
+            transform: translateY(-3px);
+            border-color: rgba(0,229,255,.3);
+            box-shadow: 0 20px 60px -20px rgba(0,229,255,.2);
+        }
+
         .neon-text {
-            background: linear-gradient(92deg, #22D3EE 0%, #F472B6 55%, #A3E635 100%);
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-        }
-        .btn-neon {
-            background: linear-gradient(92deg, #22D3EE, #6366F1);
-            color: #05070D; font-weight: 700;
-            box-shadow: 0 10px 30px -12px rgba(34,211,238,.85);
-            transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
-        }
-        .btn-neon:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 16px 40px -14px rgba(34,211,238,1); }
-        .btn-ghost { border: 1px solid rgba(148,163,184,.28); color: #E2E8F0; transition: border-color .2s ease, background .2s ease; }
-        .btn-ghost:hover { border-color: rgba(34,211,238,.6); background: rgba(34,211,238,.07); }
-        .pill { font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; padding: .2rem .6rem; border-radius: 999px; border: 1px solid transparent; }
-        .pill-live { color: #A3E635; border-color: rgba(163,230,53,.45); background: rgba(163,230,53,.08); }
-        .pill-pending { color: #FBBF24; border-color: rgba(251,191,36,.45); background: rgba(251,191,36,.08); }
-        .pill-closed { color: #F87171; border-color: rgba(248,113,113,.45); background: rgba(248,113,113,.08); }
-        .pill-info { color: #22D3EE; border-color: rgba(34,211,238,.45); background: rgba(34,211,238,.08); }
-        .pill-paid { color: #A3E635; border-color: rgba(163,230,53,.45); background: rgba(163,230,53,.08); }
-        .grid-lines {
-            background-image: linear-gradient(rgba(148,163,184,.055) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(148,163,184,.055) 1px, transparent 1px);
-            background-size: 46px 46px;
-        }
-        .divider-glow { height: 1px; background: linear-gradient(90deg, transparent, rgba(34,211,238,.45), rgba(244,114,182,.45), transparent); }
-        .accordion-body { max-height: 0; overflow: hidden; transition: max-height .35s ease, opacity .3s ease; opacity: 0; }
-        .accordion-body.open { max-height: 1200px; opacity: 1; }
-
-        /* Decorative light rig across the top of every page. */
-        .light-rig { position: fixed; top: 0; left: 0; right: 0; height: 130px; pointer-events: none; z-index: 30; overflow: hidden; }
-        .light-rig span { position: absolute; display: block; border-radius: 999px; filter: blur(42px); opacity: .55; animation: rig-drift 14s ease-in-out infinite alternate; }
-        .light-rig .rig-1 { width: 320px; height: 120px; top: -52px; left: 8%; background: rgba(34,211,238,.75); }
-        .light-rig .rig-2 { width: 280px; height: 110px; top: -46px; left: 38%; background: rgba(99,102,241,.7); animation-delay: -4s; }
-        .light-rig .rig-3 { width: 300px; height: 110px; top: -50px; right: 12%; background: rgba(244,114,182,.6); animation-delay: -8s; }
-        .light-rig::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(180deg, rgba(11,15,25,.35), rgba(11,15,25,0) 70%);
-        }
-        @keyframes rig-drift {
-            from { transform: translate3d(-12px, 0, 0) scale(1); opacity: .45; }
-            to   { transform: translate3d(16px, 10px, 0) scale(1.18); opacity: .7; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .light-rig span { animation: none; }
+            background: linear-gradient(100deg, #00E5FF 0%, #FF4D8D 60%, #AAFF00 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
 
-        /*
-         * The Tailwind forms plugin injects base styles for every input after
-         * this stylesheet is parsed, so the cyber input rules below are
-         * declared with !important to keep dark surfaces and legible text.
-         */
-        input, select, textarea { color-scheme: dark; }
-        .input-cyber {
-            background-color: rgba(11,15,25,.85) !important;
-            background-image: none !important;
-            border: 1px solid rgba(148,163,184,.28) !important;
+        .btn-primary {
+            background: linear-gradient(135deg, #00E5FF, #0066FF);
+            color: #080C14;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: .02em;
+            transition: filter .15s ease, transform .15s ease, box-shadow .15s ease;
+            box-shadow: 0 8px 24px -8px rgba(0,229,255,.6);
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+            box-shadow: 0 12px 32px -8px rgba(0,229,255,.8);
+        }
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-outline {
+            border: 1px solid rgba(100,116,139,.4);
+            color: #CBD5E1;
+            font-family: 'Space Grotesk', sans-serif;
+            transition: border-color .15s ease, background .15s ease, color .15s ease;
+        }
+        .btn-outline:hover {
+            border-color: rgba(0,229,255,.5);
+            background: rgba(0,229,255,.06);
+            color: #00E5FF;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            font-size: .65rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            padding: .2rem .65rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+        }
+        .pill-live    { color: #AAFF00; border-color: rgba(170,255,0,.35);  background: rgba(170,255,0,.08); }
+        .pill-pending { color: #FFB800; border-color: rgba(255,184,0,.35);  background: rgba(255,184,0,.08); }
+        .pill-closed  { color: #FF6B6B; border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.08); }
+        .pill-info    { color: #00E5FF; border-color: rgba(0,229,255,.35);  background: rgba(0,229,255,.08); }
+        .pill-paid    { color: #AAFF00; border-color: rgba(170,255,0,.35);  background: rgba(170,255,0,.08); }
+        .pill-pulse   { color: #FF4D8D; border-color: rgba(255,77,141,.35); background: rgba(255,77,141,.08); }
+
+        .input-field {
+            background: rgba(8,12,20,.9) !important;
+            border: 1px solid rgba(26,34,53,1) !important;
             border-radius: .6rem;
-            padding: .6rem .8rem;
+            padding: .65rem .9rem;
             width: 100%;
             color: #E2E8F0 !important;
             -webkit-text-fill-color: #E2E8F0 !important;
-            box-shadow: none !important;
+            font-size: .9rem;
+            transition: border-color .15s ease, box-shadow .15s ease;
         }
-        .input-cyber::placeholder { color: #94A3B8 !important; -webkit-text-fill-color: #94A3B8 !important; opacity: 1; }
+        .input-field::placeholder { color: #475569 !important; -webkit-text-fill-color: #475569 !important; }
+        .input-field:focus {
+            outline: none;
+            border-color: rgba(0,229,255,.6) !important;
+            box-shadow: 0 0 0 3px rgba(0,229,255,.1) !important;
+        }
+        select.input-field option { background: #080C14; color: #E2E8F0; }
+
+        .data-table th {
+            color: #475569;
+            font-size: .65rem;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            font-weight: 600;
+            padding: .75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(26,34,53,1);
+        }
+        .data-table td {
+            padding: .8rem 1rem;
+            border-bottom: 1px solid rgba(26,34,53,.6);
+            font-size: .875rem;
+        }
+        .data-table tbody tr:hover td { background: rgba(0,229,255,.025); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+
+        .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(0,229,255,.3), rgba(255,77,141,.3), transparent); }
+
+        .noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+        }
+
+        .grid-dot {
+            background-image: radial-gradient(rgba(100,116,139,.15) 1px, transparent 1px);
+            background-size: 28px 28px;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #080C14; }
+        ::-webkit-scrollbar-thumb { background: #1A2235; border-radius: 6px; }
+        ::-webkit-scrollbar-thumb:hover { background: #243048; }
+
+        @keyframes fade-up {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up { animation: fade-up .5s ease both; }
+
+        @keyframes pulse-ring {
+            0%   { box-shadow: 0 0 0 0 rgba(0,229,255,.4); }
+            70%  { box-shadow: 0 0 0 10px rgba(0,229,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(0,229,255,0); }
+        }
+        .pulse-ring { animation: pulse-ring 2s ease infinite; }
+
+        .accordion-body { max-height: 0; overflow: hidden; transition: max-height .4s ease, opacity .3s ease; opacity: 0; }
+        .accordion-body.open { max-height: 1400px; opacity: 1; }
+
+        input, select, textarea { color-scheme: dark; }
+        .input-cyber {
+            background-color: rgba(8,12,20,.9) !important;
+            border: 1px solid rgba(26,34,53,1) !important;
+            border-radius: .6rem;
+            padding: .65rem .9rem;
+            width: 100%;
+            color: #E2E8F0 !important;
+            -webkit-text-fill-color: #E2E8F0 !important;
+        }
+        .input-cyber::placeholder { color: #475569 !important; -webkit-text-fill-color: #475569 !important; opacity: 1; }
         .input-cyber:focus {
-            border-color: rgba(34,211,238,.75) !important;
-            box-shadow: 0 0 0 3px rgba(34,211,238,.14) !important;
+            border-color: rgba(0,229,255,.6) !important;
+            box-shadow: 0 0 0 3px rgba(0,229,255,.1) !important;
         }
-        .input-cyber:disabled, .input-cyber[readonly] { opacity: .7; cursor: not-allowed; }
-        select.input-cyber option { background: #0B0F19; color: #E2E8F0; }
-        input[type="checkbox"].input-cyber, input[type="radio"].input-cyber {
-            width: 1rem; height: 1rem; padding: 0; accent-color: #22D3EE;
-        }
-        table { border-collapse: collapse; }
-        .data-table th { color: #94A3B8; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; text-align: left; padding: .6rem .75rem; }
-        .data-table td { padding: .7rem .75rem; border-top: 1px solid rgba(31,41,55,.9); font-size: .9rem; }
-        .data-table tr:hover td { background: rgba(34,211,238,.04); }
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: #0B0F19; }
-        ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 8px; }
-        ::-webkit-scrollbar-thumb:hover { background: #334155; }
-        .leaflet-container { background: #0B0F19; font: inherit; }
+        select.input-cyber option { background: #080C14; color: #E2E8F0; }
     </style>
 </head>
 <body class="antialiased">
-<div class="light-rig" aria-hidden="true">
-    <span class="rig-1"></span><span class="rig-2"></span><span class="rig-3"></span>
-</div>
+
 <div class="min-h-screen flex flex-col">
 
-    <header class="sticky top-0 z-40 border-b border-edge/80 bg-void/85 backdrop-blur-xl">
+    <header class="sticky top-0 z-40 border-b border-edge/60 bg-void/80 backdrop-blur-xl">
         <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="flex h-16 items-center justify-between gap-4">
-                <a href="{{ route('home') }}" class="flex items-center gap-2">
-                    <span class="grid h-9 w-9 place-items-center rounded-lg bg-gradient-to-br from-neon to-pulse font-display text-void font-black">N</span>
-                    <span class="font-display text-lg font-bold tracking-tight">NOVARA<span class="neon-text">TICKETS</span></span>
+
+                <a href="{{ route('home') }}" class="flex items-center gap-2.5 shrink-0">
+                    <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-neon to-pulse flex items-center justify-center">
+                        <span class="font-display font-black text-void text-sm">N</span>
+                    </div>
+                    <span class="font-display font-bold text-base tracking-tight text-slate-100">
+                        Novara<span class="text-neon">Tickets</span>
+                    </span>
                 </a>
 
-                <div class="hidden items-center gap-6 md:flex">
-                    <a href="{{ route('home') }}" class="text-sm text-slate-300 hover:text-neon transition">Browse</a>
+                <div class="hidden md:flex items-center gap-1">
+                    <a href="{{ route('home') }}" class="px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-edge/50 transition">Browse</a>
                     @auth
-                        <a href="{{ route('buyer.tickets') }}" class="text-sm text-slate-300 hover:text-neon transition">My Tickets</a>
+                        <a href="{{ route('buyer.tickets') }}" class="px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-edge/50 transition">My Tickets</a>
                         @if(auth()->user()->isOrganizer())
-                            <a href="{{ route('organizer.dashboard') }}" class="text-sm text-slate-300 hover:text-neon transition">Organizer</a>
-                        @elseif(! auth()->user()->isAdmin())
-                            <a href="{{ route('seller.onboarding') }}" class="text-sm text-neon hover:text-acid transition">Start selling</a>
+                            <a href="{{ route('organizer.dashboard') }}" class="px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-100 hover:bg-edge/50 transition">Dashboard</a>
+                        @elseif(!auth()->user()->isAdmin())
+                            <a href="{{ route('seller.onboarding') }}" class="px-3 py-2 rounded-lg text-sm text-neon hover:text-acid transition font-medium">Sell tickets</a>
                         @endif
                         @if(auth()->user()->isAdmin())
-                            <a href="{{ route('admin.dashboard') }}" class="text-sm text-slate-300 hover:text-pulse transition">Admin CMS</a>
+                            <a href="{{ route('admin.dashboard') }}" class="px-3 py-2 rounded-lg text-sm text-pulse hover:text-slate-100 hover:bg-edge/50 transition">Admin</a>
                         @endif
                     @endauth
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
                     @auth
-                        <span class="hidden sm:inline text-xs text-slate-400">{{ auth()->user()->name }}</span>
+                        <span class="hidden sm:block text-xs text-slate-500 max-w-[120px] truncate">{{ auth()->user()->name }}</span>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
-                            <button class="btn-ghost rounded-lg px-3 py-2 text-sm">Sign out</button>
+                            <button class="btn-outline rounded-lg px-3 py-1.5 text-sm">Sign out</button>
                         </form>
                     @else
-                        <a href="{{ route('login') }}" class="btn-ghost rounded-lg px-3 py-2 text-sm">Sign in</a>
-                        <a href="{{ route('register') }}" class="btn-neon rounded-lg px-4 py-2 text-sm">Get started</a>
+                        <a href="{{ route('login') }}" class="btn-outline rounded-lg px-3 py-1.5 text-sm">Sign in</a>
+                        <a href="{{ route('register') }}" class="btn-primary rounded-lg px-4 py-1.5 text-sm">Get started</a>
                     @endauth
                 </div>
+
             </div>
         </nav>
     </header>
 
     @if(session('status'))
-        <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
-            <div class="rounded-xl border border-acid/40 bg-acid/10 px-4 py-3 text-sm text-acid">{{ session('status') }}</div>
+        <div class="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-3 rounded-xl border border-acid/30 bg-acid/8 px-4 py-3 text-sm text-acid">
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                {{ session('status') }}
+            </div>
         </div>
     @endif
 
     @if(session('error'))
-        <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
-            <div class="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{{ session('error') }}</div>
+        <div class="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/8 px-4 py-3 text-sm text-red-400">
+                <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                {{ session('error') }}
+            </div>
         </div>
     @endif
 
     @if($errors->any())
-        <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
-            <div class="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-                <ul class="list-disc pl-5">
+        <div class="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <div class="rounded-xl border border-red-500/30 bg-red-500/8 px-4 py-3 text-sm text-red-400">
+                <ul class="space-y-1">
                     @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
+                        <li class="flex items-center gap-2">
+                            <span class="h-1 w-1 rounded-full bg-red-400 shrink-0"></span>
+                            {{ $error }}
+                        </li>
                     @endforeach
                 </ul>
             </div>
@@ -228,58 +301,65 @@
         @yield('content')
     </main>
 
-    <footer class="mt-16 border-t border-edge/70 bg-void/60">
-        <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-            <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-                <div class="max-w-sm">
-                    <p class="font-display text-lg font-bold">NOVARA<span class="neon-text">TICKETS</span></p>
-                    <p class="mt-2 text-sm text-slate-500">Mobile Money ticketing for events and services in Uganda. {{ config('ticketing.brand.tagline', 'Everything by Novara.') }}</p>
-                    <div class="mt-4 flex flex-wrap gap-3 text-xs text-slate-400">
+    <footer class="mt-20 border-t border-edge/60">
+        <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <div class="flex flex-col gap-10 lg:flex-row lg:justify-between">
+                <div class="max-w-xs">
+                    <div class="flex items-center gap-2">
+                        <div class="h-7 w-7 rounded-md bg-gradient-to-br from-neon to-pulse flex items-center justify-center">
+                            <span class="font-display font-black text-void text-xs">N</span>
+                        </div>
+                        <span class="font-display font-bold text-slate-200">Novara<span class="text-neon">Tickets</span></span>
+                    </div>
+                    <p class="mt-3 text-sm text-slate-500 leading-relaxed">
+                        Uganda's Mobile Money ticketing platform. Buy event tickets, book services, run the gate — all paid with MoMo.
+                    </p>
+                    <div class="mt-4 flex flex-wrap gap-2">
                         @foreach(config('ticketing.momo.providers') as $label)
-                            <span class="rounded-full border border-edge px-3 py-1">{{ $label }}</span>
+                            <span class="pill pill-info">{{ $label }}</span>
                         @endforeach
                         @foreach(config('ticketing.momo.unavailable_providers', []) as $label)
-                            <span class="rounded-full border border-edge/70 px-3 py-1 text-slate-600">{{ $label }} (coming soon)</span>
+                            <span class="pill" style="color:#475569;border-color:rgba(71,85,105,.3)">{{ $label }} soon</span>
                         @endforeach
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 sm:gap-8">
+                <div class="grid grid-cols-2 gap-8 sm:grid-cols-3">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Platform</p>
-                        <ul class="mt-3 space-y-2 text-sm text-slate-500">
-                            <li><a class="transition hover:text-neon" href="{{ route('home') }}">Browse events</a></li>
-                            <li><a class="transition hover:text-neon" href="{{ route('register') }}">Create an account</a></li>
-                            <li><a class="transition hover:text-neon" href="{{ route('login') }}">Sign in</a></li>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Platform</p>
+                        <ul class="space-y-2 text-sm text-slate-500">
+                            <li><a href="{{ route('home') }}" class="hover:text-neon transition">Browse events</a></li>
+                            <li><a href="{{ route('register') }}" class="hover:text-neon transition">Create account</a></li>
+                            <li><a href="{{ route('login') }}" class="hover:text-neon transition">Sign in</a></li>
                         </ul>
                     </div>
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Novara Tech Africa</p>
-                        <ul class="mt-3 space-y-2 text-sm text-slate-500">
-                            <li><a class="transition hover:text-neon" href="{{ config('ticketing.brand.website') }}" target="_blank" rel="noopener">Website</a></li>
-                            <li><a class="transition hover:text-neon" href="{{ config('ticketing.brand.instagram') }}" target="_blank" rel="noopener">Instagram</a></li>
-                            <li><a class="transition hover:text-neon" href="{{ config('ticketing.brand.whatsapp_link') }}" target="_blank" rel="noopener">WhatsApp {{ config('ticketing.brand.whatsapp') }}</a></li>
-                            <li><a class="transition hover:text-neon" href="mailto:{{ config('ticketing.brand.email') }}">{{ config('ticketing.brand.email') }}</a></li>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Novara Tech</p>
+                        <ul class="space-y-2 text-sm text-slate-500">
+                            <li><a href="{{ config('ticketing.brand.website') }}" target="_blank" rel="noopener" class="hover:text-neon transition">Website</a></li>
+                            <li><a href="{{ config('ticketing.brand.instagram') }}" target="_blank" rel="noopener" class="hover:text-neon transition">Instagram</a></li>
+                            <li><a href="{{ config('ticketing.brand.whatsapp_link') }}" target="_blank" rel="noopener" class="hover:text-neon transition">WhatsApp</a></li>
+                            <li><a href="mailto:{{ config('ticketing.brand.email') }}" class="hover:text-neon transition">Email us</a></li>
                         </ul>
                     </div>
-                    <div class="col-span-2 sm:col-span-1">
-                        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Support</p>
-                        <ul class="mt-3 space-y-2 text-sm text-slate-500">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Support</p>
+                        <ul class="space-y-2 text-sm text-slate-500">
                             <li>{{ config('ticketing.brand.support_hours') }}</li>
-                            <li>Paid via Mobile Money</li>
-                            <li>Secured by Paystack</li>
+                            <li>Instant QR delivery</li>
+                            <li>MTN MoMo secured</li>
                         </ul>
                     </div>
                 </div>
             </div>
-            <div class="divider-glow my-8"></div>
-            <p class="text-xs text-slate-600">© {{ date('Y') }} {{ config('ticketing.brand.company', 'Novara Tech Africa') }}. Every ticket is issued with a single-use cryptographic QR code.</p>
+
+            <div class="divider my-8"></div>
+            <p class="text-xs text-slate-600">© {{ date('Y') }} {{ config('ticketing.brand.company', 'Novara Tech Africa') }}. Every ticket carries a single-use cryptographic QR code.</p>
         </div>
     </footer>
 </div>
 
 @include('partials.help')
-
 @stack('scripts')
 </body>
 </html>

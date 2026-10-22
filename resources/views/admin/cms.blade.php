@@ -1,96 +1,111 @@
 @extends('layouts.app')
 
-@section('title', 'Admin CMS — '.config('app.name', 'Novara Tickets'))
+@section('title', 'Admin — Novara Tickets')
 
 @section('content')
-<section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-    <div class="flex flex-wrap items-end justify-between gap-4">
+<div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 space-y-8">
+
+    {{-- Header --}}
+    <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-            <span class="pill pill-pending">Admin console</span>
-            <h1 class="mt-3 font-display text-3xl font-black">Platform control room</h1>
-            <p class="mt-1 text-sm text-slate-500">Transaction volume, merchant audit and moderation queues.</p>
+            <div class="flex items-center gap-2 mb-1">
+                <span class="pill pill-pulse">Admin</span>
+                <span class="text-xs text-slate-500">{{ now()->format('D d M Y · H:i') }} EAT</span>
+            </div>
+            <h1 class="font-display text-2xl font-black text-slate-100 sm:text-3xl">Control Room</h1>
         </div>
-        <div class="flex flex-wrap gap-3">
-            <a href="{{ route('admin.analytics.index') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">User analytics</a>
-            <a href="{{ route('admin.approvals.index') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">Approvals</a>
-            <a href="{{ route('admin.ledger') }}" class="btn-ghost rounded-xl px-4 py-2.5 text-sm">Ledger</a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('admin.users.index') }}" class="btn-outline rounded-lg px-4 py-2 text-sm">Users</a>
+            <a href="{{ route('admin.analytics.index') }}" class="btn-outline rounded-lg px-4 py-2 text-sm">Analytics</a>
+            <a href="{{ route('admin.approvals.index') }}" class="btn-outline rounded-lg px-4 py-2 text-sm">Approvals</a>
+            <a href="{{ route('admin.ledger') }}" class="btn-outline rounded-lg px-4 py-2 text-sm">Ledger</a>
         </div>
     </div>
 
-    <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {{-- Revenue stats --}}
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         @foreach([
-            ['Gross volume', \App\Support\Money::format($stats['volume_minor']), 'text-neon'],
-            ['Platform revenue', \App\Support\Money::format($stats['commission_minor']), 'text-pulse'],
-            ['Organizer net', \App\Support\Money::format($stats['net_minor']), 'text-acid'],
-            ['Tickets issued', number_format($stats['tickets_sold']), 'text-slate-100'],
-        ] as [$label, $value, $tone])
-            <div class="panel px-5 py-4">
-                <p class="text-[.7rem] uppercase tracking-wider text-slate-500">{{ $label }}</p>
+            ['Gross volume',      \App\Support\Money::format($stats['volume_minor']),     'text-neon',  'Total paid orders'],
+            ['Platform revenue',  \App\Support\Money::format($stats['commission_minor']), 'text-pulse', 'Your commission cut'],
+            ['Organizer net',     \App\Support\Money::format($stats['net_minor']),        'text-acid',  'After platform fee'],
+            ['Tickets issued',    number_format($stats['tickets_sold']),                  'text-amber', 'Non-refunded'],
+        ] as [$label, $value, $tone, $sub])
+            <div class="panel p-5">
+                <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">{{ $label }}</p>
                 <p class="mt-2 font-display text-2xl font-black {{ $tone }}">{{ $value }}</p>
+                <p class="mt-1 text-xs text-slate-600">{{ $sub }}</p>
             </div>
         @endforeach
     </div>
 
-    <div class="mt-4 grid gap-4 sm:grid-cols-4">
+    {{-- Secondary stats --}}
+    <div class="grid gap-3 grid-cols-2 sm:grid-cols-4">
         @foreach([
-            ['Paid orders', $stats['orders']],
-            ['Pending orders', $stats['pending_orders']],
-            ['Organizers', $stats['organizers']],
-            ['Pending approval', $stats['pending_organizers']],
+            ['Paid orders',       $stats['orders']],
+            ['Pending orders',    $stats['pending_orders']],
+            ['Total organizers',  $stats['organizers']],
+            ['Awaiting approval', $stats['pending_organizers']],
         ] as [$label, $value])
-            <div class="panel px-5 py-3">
-                <p class="text-[.7rem] uppercase tracking-wider text-slate-500">{{ $label }}</p>
-                <p class="mt-1 font-display text-lg font-bold text-slate-100">{{ number_format($value) }}</p>
+            <div class="panel px-5 py-4">
+                <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">{{ $label }}</p>
+                <p class="mt-1.5 font-display text-xl font-bold text-slate-100">{{ number_format($value) }}</p>
             </div>
         @endforeach
     </div>
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div class="panel p-6">
-            <div class="flex items-center justify-between">
-                <h2 class="font-display text-lg font-bold">Transaction volume — last 14 days</h2>
-                <span class="text-xs text-slate-500">Current fee {{ \App\Support\Money::percent($commissionBps) }}</span>
-            </div>
+    {{-- Chart + Commission --}}
+    <div class="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
 
-            <div class="mt-6 flex h-56 items-end gap-2">
+        {{-- 14-day chart --}}
+        <div class="panel p-6">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Revenue</p>
+                    <h2 class="font-display text-lg font-bold text-slate-100 mt-0.5">Last 14 days</h2>
+                </div>
+                <span class="text-xs text-slate-500">Fee {{ \App\Support\Money::percent($commissionBps) }}</span>
+            </div>
+            <div class="flex h-48 items-end gap-1.5">
                 @foreach($series as $point)
-                    @php
-                        $height = (int) round(($point['gross'] / $maxGross) * 100);
-                        $height = max(2, $height);
-                    @endphp
-                    <div class="group flex flex-1 flex-col items-center gap-2">
-                        <span class="text-[.6rem] text-slate-500 opacity-0 transition group-hover:opacity-100">
+                    @php $h = max(2, (int) round(($point['gross'] / $maxGross) * 100)); @endphp
+                    <div class="group flex flex-1 flex-col items-center gap-1.5">
+                        <span class="text-[.6rem] text-slate-500 opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
                             {{ \App\Support\Money::format($point['gross']) }}
                         </span>
-                        <div class="w-full rounded-t-md bg-gradient-to-t from-neon/30 to-neon transition group-hover:from-pulse/40 group-hover:to-pulse"
-                             style="height: {{ $height }}%"></div>
-                        <span class="text-[.6rem] text-slate-600">{{ $point['label'] }}</span>
+                        <div class="w-full rounded-t bg-gradient-to-t from-neon/40 to-neon group-hover:from-pulse/50 group-hover:to-pulse transition-all duration-200"
+                             style="height:{{ $h }}%"></div>
+                        <span class="text-[.6rem] text-slate-600 rotate-0">{{ $point['label'] }}</span>
                     </div>
                 @endforeach
             </div>
         </div>
 
-        <div class="panel p-6">
-            <h2 class="font-display text-lg font-bold">Platform commission</h2>
-            <p class="mt-1 text-xs text-slate-500">Always prompted before it is applied to new sales.</p>
+        {{-- Commission control --}}
+        <div class="panel p-6 flex flex-col">
+            <div class="mb-5">
+                <p class="text-xs uppercase tracking-widest text-slate-500 font-semibold">Settings</p>
+                <h2 class="font-display text-lg font-bold text-slate-100 mt-0.5">Platform commission</h2>
+            </div>
 
-            <form method="POST" action="{{ route('admin.settings.commission') }}" class="mt-5 space-y-3">
+            <form method="POST" action="{{ route('admin.settings.commission') }}" class="space-y-3 flex-1">
                 @csrf
                 <div>
-                    <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Commission percentage</label>
-                    <input type="number" step="0.01" min="0" max="100" name="commission_percent" value="{{ rtrim(rtrim(number_format($commissionBps / 100, 2), '0'), '.') }}" required class="input-cyber text-sm">
+                    <label class="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-1.5">Commission %</label>
+                    <input type="number" step="0.01" min="0" max="100" name="commission_percent"
+                           value="{{ rtrim(rtrim(number_format($commissionBps / 100, 2), '0'), '.') }}"
+                           required class="input-cyber">
                 </div>
-                <button class="btn-neon w-full rounded-xl px-4 py-3">Save commission</button>
+                <button class="btn-primary w-full rounded-xl py-2.5 text-sm">Save</button>
             </form>
 
-            <div class="mt-6 border-t border-edge/70 pt-5">
-                <h3 class="text-xs uppercase tracking-wider text-slate-500">Quick set</h3>
-                <div class="mt-3 flex flex-wrap gap-2">
-                    @foreach([5, 10, 15, 20] as $percent)
+            <div class="mt-5 pt-5 border-t border-edge/60">
+                <p class="text-xs text-slate-500 mb-3">Quick set</p>
+                <div class="flex flex-wrap gap-2">
+                    @foreach([5, 10, 15, 20] as $pct)
                         <form method="POST" action="{{ route('admin.settings.commission') }}">
                             @csrf
-                            <input type="hidden" name="commission_percent" value="{{ $percent }}">
-                            <button class="btn-ghost rounded-lg px-3 py-1.5 text-xs">{{ $percent }}%</button>
+                            <input type="hidden" name="commission_percent" value="{{ $pct }}">
+                            <button class="btn-outline rounded-lg px-3 py-1.5 text-xs">{{ $pct }}%</button>
                         </form>
                     @endforeach
                 </div>
@@ -98,31 +113,33 @@
         </div>
     </div>
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    {{-- Approval queue + Moderation queue --}}
+    <div class="grid gap-5 lg:grid-cols-2">
+
         <div class="panel overflow-hidden">
-            <div class="flex items-center justify-between border-b border-edge/70 px-5 py-4">
-                <h2 class="font-display text-lg font-bold">Merchant approval queue</h2>
-                <a href="{{ route('admin.approvals.index') }}" class="text-xs uppercase tracking-wider text-neon hover:underline">Manage</a>
+            <div class="flex items-center justify-between px-5 py-4 border-b border-edge/60">
+                <h2 class="font-display font-bold text-slate-100">Merchant approvals</h2>
+                <a href="{{ route('admin.approvals.index') }}" class="text-xs text-neon hover:text-acid transition">Manage all →</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="data-table w-full min-w-[520px]">
-                    <thead><tr><th>Business</th><th>Owner</th><th>Status</th><th>Action</th></tr></thead>
+                <table class="data-table w-full min-w-[480px]">
+                    <thead><tr><th>Business</th><th>Owner</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                         @forelse($pendingOrganizers as $organizer)
                             <tr>
-                                <td class="text-slate-200">{{ $organizer->business_name }}</td>
-                                <td class="text-slate-400">{{ $organizer->user?->email }}</td>
-                                <td><span class="pill pill-pending">{{ $organizer->status }}</span></td>
+                                <td class="text-slate-200 font-medium">{{ $organizer->business_name }}</td>
+                                <td class="text-slate-400 text-xs">{{ $organizer->user?->email }}</td>
+                                <td><span class="pill pill-pending">pending</span></td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.approvals.update', $organizer) }}">
                                         @csrf
                                         <input type="hidden" name="status" value="approved">
-                                        <button class="text-xs uppercase tracking-wider text-acid hover:underline">Approve</button>
+                                        <button class="text-xs text-acid hover:underline font-medium">Approve</button>
                                     </form>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-500">No merchants awaiting review.</td></tr>
+                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-600">No pending merchants.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -130,29 +147,29 @@
         </div>
 
         <div class="panel overflow-hidden">
-            <div class="flex items-center justify-between border-b border-edge/70 px-5 py-4">
-                <h2 class="font-display text-lg font-bold">Event moderation queue</h2>
-                <a href="{{ route('admin.orders.index') }}" class="text-xs uppercase tracking-wider text-neon hover:underline">Orders</a>
+            <div class="flex items-center justify-between px-5 py-4 border-b border-edge/60">
+                <h2 class="font-display font-bold text-slate-100">Event moderation</h2>
+                <a href="{{ route('admin.orders.index') }}" class="text-xs text-neon hover:text-acid transition">Orders →</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="data-table w-full min-w-[520px]">
-                    <thead><tr><th>Listing</th><th>Organizer</th><th>Status</th><th>Action</th></tr></thead>
+                <table class="data-table w-full min-w-[480px]">
+                    <thead><tr><th>Listing</th><th>Organizer</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                         @forelse($pendingListings as $listing)
                             <tr>
-                                <td class="text-slate-200">{{ $listing->title }}</td>
-                                <td class="text-slate-400">{{ $listing->organizer?->business_name }}</td>
-                                <td><span class="pill pill-pending">{{ $listing->status }}</span></td>
+                                <td class="text-slate-200 font-medium">{{ $listing->title }}</td>
+                                <td class="text-slate-400 text-xs">{{ $listing->organizer?->business_name }}</td>
+                                <td><span class="pill pill-pending">pending</span></td>
                                 <td>
                                     <form method="POST" action="{{ route('admin.listings.moderate', $listing) }}">
                                         @csrf
                                         <input type="hidden" name="status" value="published">
-                                        <button class="text-xs uppercase tracking-wider text-acid hover:underline">Publish</button>
+                                        <button class="text-xs text-acid hover:underline font-medium">Publish</button>
                                     </form>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-500">Nothing waiting for moderation.</td></tr>
+                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-600">Nothing waiting for review.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -160,57 +177,70 @@
         </div>
     </div>
 
-    <div class="mt-8 panel overflow-hidden">
-        <div class="flex items-center justify-between border-b border-edge/70 px-5 py-4">
+    {{-- Featured curation --}}
+    <div class="panel overflow-hidden">
+        <div class="flex items-center justify-between px-5 py-4 border-b border-edge/60">
             <div>
-                <h2 class="font-display text-lg font-bold">Our Picks curation</h2>
-                <p class="mt-0.5 text-xs text-slate-500">Featured listings lead the home page. The row falls back to the soonest events when fewer than four are featured.</p>
+                <h2 class="font-display font-bold text-slate-100">Our Picks curation</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Featured listings lead the homepage. Falls back to soonest events when fewer than 4 are featured.</p>
             </div>
             <span class="pill pill-info">{{ $featuredListings->where('featured')->count() }}/4 featured</span>
         </div>
         <div class="overflow-x-auto">
-            <table class="data-table w-full min-w-[520px]">
-                <thead><tr><th>Listing</th><th>Organizer</th><th>When</th><th>Status</th><th>Pick</th></tr></thead>
+            <table class="data-table w-full min-w-[560px]">
+                <thead><tr><th>Listing</th><th>Organizer</th><th>Date</th><th>Status</th><th></th></tr></thead>
                 <tbody>
                     @forelse($featuredListings as $listing)
                         <tr>
-                            <td class="text-slate-200">{{ $listing->title }}</td>
-                            <td class="text-slate-400">{{ $listing->organizer?->business_name }}</td>
-                            <td class="text-slate-400">{{ $listing->starts_at->format('d M Y') }}</td>
-                            <td><span class="pill {{ $listing->featured ? 'pill-info' : 'pill-pending' }}">{{ $listing->status }}</span></td>
+                            <td class="text-slate-200 font-medium">{{ $listing->title }}</td>
+                            <td class="text-slate-400 text-xs">{{ $listing->organizer?->business_name }}</td>
+                            <td class="text-slate-500 text-xs">{{ $listing->starts_at->format('d M Y') }}</td>
+                            <td>
+                                <span class="pill {{ $listing->featured ? 'pill-info' : 'pill-pending' }}">
+                                    {{ $listing->status }}
+                                </span>
+                            </td>
                             <td>
                                 <form method="POST" action="{{ route('admin.listings.feature', $listing) }}">
                                     @csrf
-                                    <button class="text-xs uppercase tracking-wider {{ $listing->featured ? 'text-slate-500 hover:text-pulse' : 'text-neon hover:underline' }}">
-                                        {{ $listing->featured ? 'Remove' : 'Feature' }}
+                                    <button class="text-xs font-medium {{ $listing->featured ? 'text-slate-500 hover:text-pulse' : 'text-neon hover:underline' }} transition">
+                                        {{ $listing->featured ? 'Unfeature' : 'Feature' }}
                                     </button>
                                 </form>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="py-10 text-center text-sm text-slate-500">No published listings to curate yet.</td></tr>
+                        <tr><td colspan="5" class="py-10 text-center text-sm text-slate-600">No published listings to curate.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 
-    <div class="mt-8 grid gap-6 lg:grid-cols-2">
+    {{-- Recent orders + Ledger --}}
+    <div class="grid gap-5 lg:grid-cols-2">
+
         <div class="panel overflow-hidden">
-            <h2 class="border-b border-edge/70 px-5 py-4 font-display text-lg font-bold">Recent orders</h2>
+            <div class="px-5 py-4 border-b border-edge/60">
+                <h2 class="font-display font-bold text-slate-100">Recent orders</h2>
+            </div>
             <div class="overflow-x-auto">
-                <table class="data-table w-full min-w-[520px]">
+                <table class="data-table w-full min-w-[440px]">
                     <thead><tr><th>Reference</th><th>Buyer</th><th>Total</th><th>Status</th></tr></thead>
                     <tbody>
                         @forelse($recentOrders as $order)
                             <tr>
-                                <td class="font-mono text-xs text-slate-300">{{ $order->tx_ref }}</td>
-                                <td class="text-slate-300">{{ $order->buyer_name }}</td>
-                                <td class="text-slate-200">@money($order->total_minor)</td>
-                                <td><span class="pill {{ $order->status === 'paid' ? 'pill-paid' : 'pill-pending' }}">{{ $order->status }}</span></td>
+                                <td class="font-mono text-xs text-slate-400">{{ $order->tx_ref }}</td>
+                                <td class="text-slate-300 text-sm">{{ $order->buyer_name }}</td>
+                                <td class="font-display font-bold text-neon text-sm">@money($order->total_minor)</td>
+                                <td>
+                                    <span class="pill {{ $order->status === 'paid' ? 'pill-paid' : 'pill-pending' }}">
+                                        {{ $order->status }}
+                                    </span>
+                                </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-500">No orders yet.</td></tr>
+                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-600">No orders yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -218,25 +248,32 @@
         </div>
 
         <div class="panel overflow-hidden">
-            <h2 class="border-b border-edge/70 px-5 py-4 font-display text-lg font-bold">Latest ledger movement</h2>
+            <div class="px-5 py-4 border-b border-edge/60">
+                <h2 class="font-display font-bold text-slate-100">Latest ledger</h2>
+            </div>
             <div class="overflow-x-auto">
-                <table class="data-table w-full min-w-[520px]">
-                    <thead><tr><th>Type</th><th>Memo</th><th>Amount</th><th>Date</th></tr></thead>
+                <table class="data-table w-full min-w-[440px]">
+                    <thead><tr><th>Type</th><th>Memo</th><th>Amount</th><th>When</th></tr></thead>
                     <tbody>
                         @forelse($recentLedger as $tx)
                             <tr>
-                                <td><span class="pill {{ $tx->type === 'fee' ? 'pill-pending' : 'pill-info' }}">{{ $tx->type }}</span></td>
-                                <td class="text-slate-300">{{ $tx->memo }}</td>
-                                <td class="{{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-300' }}">@money(abs($tx->amount_minor))</td>
-                                <td class="text-xs text-slate-500">{{ $tx->created_at->format('d M H:i') }}</td>
+                                <td>
+                                    <span class="pill {{ $tx->type === 'fee' ? 'pill-pending' : 'pill-info' }}">{{ $tx->type }}</span>
+                                </td>
+                                <td class="text-slate-400 text-xs max-w-[140px] truncate">{{ $tx->memo }}</td>
+                                <td class="font-display font-bold text-sm {{ $tx->amount_minor >= 0 ? 'text-acid' : 'text-red-400' }}">
+                                    @money(abs($tx->amount_minor))
+                                </td>
+                                <td class="text-xs text-slate-600">{{ $tx->created_at->format('d M H:i') }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-500">Ledger is empty.</td></tr>
+                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-600">Ledger is empty.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
-</section>
+
+</div>
 @endsection
