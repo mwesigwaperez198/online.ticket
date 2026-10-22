@@ -22,8 +22,8 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
     PORT=10000
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends unzip libpq-dev libsqlite3-dev \
- && docker-php-ext-install pdo_pgsql pdo_sqlite \
+ && apt-get install -y --no-install-recommends unzip libpq-dev \
+ && docker-php-ext-install pdo_pgsql \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=vendor /app/vendor /var/www/html/vendor
@@ -62,14 +62,12 @@ RUN set -eux; \
     grep -q 'DocumentRoot /var/www/html/public' /etc/apache2/sites-available/000-default.conf; \
     if [ -f /usr/local/etc/php/php.ini-production ]; then cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; fi; \
     printf '%s\n' 'opcache.enable=1' 'opcache.memory_consumption=192' 'opcache.max_accelerated_files=20000' 'opcache.validate_timestamps=0' 'max_execution_time=60' 'memory_limit=256M' 'output_buffering=4096' 'implicit_flush=Off' >> /usr/local/etc/php/php.ini; \
-    mkdir -p database; \
-    touch database/database.sqlite; \
-    chown -R www-data:www-data storage bootstrap/cache database; \
-    chmod -R 775 storage bootstrap/cache database
+    chown -R www-data:www-data storage bootstrap/cache; \
+    chmod -R 775 storage bootstrap/cache
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 10000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["sh", "-c", "touch /var/www/html/database/database.sqlite && chown www-data:www-data /var/www/html/database/database.sqlite && chmod 664 /var/www/html/database/database.sqlite && php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
+CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
