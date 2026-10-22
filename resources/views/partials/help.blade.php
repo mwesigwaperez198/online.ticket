@@ -65,7 +65,7 @@
 
         <div class="hidden max-h-[60vh] space-y-4 overflow-y-auto px-4 py-4 text-sm text-slate-300" data-help-panel="novara">
             <p class="font-semibold text-slate-100">What to know about Novara</p>
-            <p>{{ config('ticketing.brand.company') }} builds {{ config('ticketing.brand.name') }}, the Mobile Money ticketing marketplace for Uganda. Buy tickets, book services and run the gate — all paid by MTN Mobile Money or Airtel Money.</p>
+            <p>{{ config('ticketing.brand.company') }} builds {{ config('ticketing.brand.name') }}, the Mobile Money ticketing marketplace for Uganda. Buy tickets, book services and run the gate — all paid by {{ implode(' or ', config('ticketing.momo.providers')) }}.</p>
             <ul class="space-y-1.5 text-xs text-slate-400">
                 <li>Tickets are issued instantly with a single-use QR code.</li>
                 <li>Every organiser is approved by the admin team before their first payout.</li>

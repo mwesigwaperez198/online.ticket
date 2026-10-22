@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', config('app.name', 'Novara Tickets'))</title>
-    <meta name="description" content="@yield('meta_description', 'Novara Tickets — Mobile Money ticketing and booking in Uganda. Buy event tickets, services and gate passes with MTN Mobile Money and Airtel Money.')">
+    <meta name="description" content="@yield('meta_description', 'Novara Tickets — Mobile Money ticketing and booking in Uganda. Buy event tickets, services and gate passes with '.implode(' or ', config('ticketing.momo.providers')).'.')">
     <meta name="keywords" content="tickets Uganda, Mobile Money tickets, MTN MoMo Uganda, Airtel Money, event tickets Kampala, Novara Tickets">
     <meta name="author" content="{{ config('ticketing.brand.company', 'Novara Tech Africa') }}">
     <meta name="robots" content="@yield('meta_robots', 'index, follow')">
@@ -235,12 +235,16 @@
                     <p class="font-display text-lg font-bold">NOVARA<span class="neon-text">TICKETS</span></p>
                     <p class="mt-2 text-sm text-slate-500">Mobile Money ticketing for events and services in Uganda. {{ config('ticketing.brand.tagline', 'Everything by Novara.') }}</p>
                     <div class="mt-4 flex flex-wrap gap-3 text-xs text-slate-400">
-                        <span class="rounded-full border border-edge px-3 py-1">MTN Mobile Money</span>
-                        <span class="rounded-full border border-edge px-3 py-1">Airtel Money</span>
+                        @foreach(config('ticketing.momo.providers') as $label)
+                            <span class="rounded-full border border-edge px-3 py-1">{{ $label }}</span>
+                        @endforeach
+                        @foreach(config('ticketing.momo.unavailable_providers', []) as $label)
+                            <span class="rounded-full border border-edge/70 px-3 py-1 text-slate-600">{{ $label }} (coming soon)</span>
+                        @endforeach
                     </div>
                 </div>
 
-                <div class="grid gap-8 sm:grid-cols-3">
+                <div class="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 sm:gap-8">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Platform</p>
                         <ul class="mt-3 space-y-2 text-sm text-slate-500">
@@ -258,7 +262,7 @@
                             <li><a class="transition hover:text-neon" href="mailto:{{ config('ticketing.brand.email') }}">{{ config('ticketing.brand.email') }}</a></li>
                         </ul>
                     </div>
-                    <div>
+                    <div class="col-span-2 sm:col-span-1">
                         <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Support</p>
                         <ul class="mt-3 space-y-2 text-sm text-slate-500">
                             <li>{{ config('ticketing.brand.support_hours') }}</li>

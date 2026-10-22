@@ -31,6 +31,13 @@ return [
                 'mtn' => 'MTN Mobile Money',
                 'airtel' => 'Airtel Money',
             ],
+        // Providers the platform recognises but cannot collect with yet. The
+        // checkout still lists them, marked as unavailable, so a buyer who
+        // expects Airtel is told to pay with MTN instead of quietly losing
+        // the option.
+        'unavailable_providers' => strtolower(trim((string) env('MOMO_GATEWAY', 'paystack'))) === 'mtn'
+            ? ['airtel' => 'Airtel Money']
+            : [],
         // Ugandan mobile numbers only: 07XXXXXXXX locally or +2567XXXXXXXX
         // internationally. Anything else is rejected before an order is made.
         'provider_regex' => '/^(\+?2567|0)7\d{8}$/',

@@ -30,6 +30,10 @@ final class CheckoutController extends Controller
             'buyer_email' => ['required', 'email', 'max:190'],
             'buyer_phone' => ['required', 'string', 'max:30', 'regex:'.config('ticketing.momo.provider_regex', '/^(\+?256|0)\d{9}$/')],
             'momo_provider' => ['required', Rule::in(array_keys(config('ticketing.momo.providers', ['mtn' => 'MTN', 'airtel' => 'Airtel'])))],
+        ], [
+            // A provider that is known but not collecting yet must not look
+            // like a broken form: say what to use instead.
+            'momo_provider.in' => 'That Mobile Money provider is not collecting right now. Pay with '.implode(' or ', config('ticketing.momo.providers')).'.',
         ]);
 
         try {

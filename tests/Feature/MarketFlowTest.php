@@ -254,6 +254,32 @@ final class MarketFlowTest extends TestCase
         $this->assertSame(1, Order::query()->count());
     }
 
+    public function test_a_provider_that_is_not_collecting_is_refused_and_the_buyer_is_told_what_to_use(): void
+    {
+        config([
+            'ticketing.momo.providers' => ['mtn' => 'MTN Mobile Money'],
+            'ticketing.momo.unavailable_providers' => ['airtel' => 'Airtel Money'],
+        ]);
+
+        $this->get(route('events.show', $this->listing->slug))
+            ->assertOk()
+            ->assertSee('Airtel Money — coming soon')
+            ->assertSee('Pay with MTN Mobile Money');
+
+        $this->actingAs($this->buyer)->post(route('checkout.store'), [
+            'listing_id' => $this->listing->id,
+            'ticket_type_id' => $this->tier->id,
+            'quantity' => 1,
+            'buyer_name' => 'Kojo Mensah',
+            'buyer_email' => 'kojo@example.test',
+            'buyer_phone' => '0771234567',
+            'momo_provider' => 'airtel',
+        ])->assertSessionHasErrors('momo_provider');
+
+        $this->assertStringContainsString('MTN Mobile Money', (string) session('errors')->first('momo_provider'));
+        $this->assertSame(0, Order::query()->count());
+    }
+
     public function test_webhook_is_idempotent_and_marks_the_order_paid(): void
     {
         $this->actingAs($this->buyer)->post(route('checkout.store'), [

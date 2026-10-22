@@ -2,17 +2,19 @@
 
 @php
     $platformFeeLabel = \App\Support\Money::percent((int) setting('platform_commission_bps', 2000));
+    $liveProviders = collect(config('ticketing.momo.providers'))->keys()
+        ->map(fn (string $key): string => $key === 'mtn' ? 'MTN' : ucfirst($key));
 @endphp
 
 @section('title', 'Novara Tickets — Mobile Money events & services in Uganda')
-@section('meta_description', 'Novara Tickets buys and sells event tickets, services and gate passes across Uganda. Pay instantly with MTN Mobile Money or Airtel Money. Everything by Novara.')
+@section('meta_description', 'Novara Tickets buys and sells event tickets, services and gate passes across Uganda. Pay instantly with '.implode(' or ', config('ticketing.momo.providers')).'. Everything by Novara.')
 
 @section('content')
 <section class="relative overflow-hidden border-b border-edge/70">
     <div class="absolute inset-0 grid-lines opacity-70"></div>
     <div class="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         <div class="max-w-3xl">
-            <span class="pill pill-info">MTN Mobile Money · Airtel Money · Uganda</span>
+            <span class="pill pill-info">{{ implode(' · ', config('ticketing.momo.providers')) }} · Uganda</span>
             <h1 class="mt-6 font-display text-4xl font-black leading-[1.05] tracking-tight sm:text-6xl">
                 Own the night.<br>
                 <span class="neon-text">Sell the tickets.</span>
@@ -31,7 +33,7 @@
             <dl class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
                 @foreach([
                     ['Live listings', number_format($listings->total())],
-                    ['Mobile money', 'MTN / Airtel'],
+                    ['Mobile money', $liveProviders->implode(' / ')],
                     ['Platform fee', $platformFeeLabel],
                     ['Instant tickets', 'QR + wallet'],
                 ] as [$label, $value])

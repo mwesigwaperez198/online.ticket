@@ -38,7 +38,7 @@ final class AuthenticatedSessionController
 
         $user = User::query()->where('email', $credentials['email'])->first();
 
-        if ($user === null || ! Auth::validate(['email' => $credentials['email'], 'password' => $credentials['password']], $credentials)) {
+        if ($user === null || ! Auth::validate(['email' => $credentials['email'], 'password' => $credentials['password']])) {
             RateLimiter::hit($throttleKey);
 
             throw ValidationException::withMessages([

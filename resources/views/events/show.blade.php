@@ -150,9 +150,19 @@
                                     @foreach(config('ticketing.momo.providers') as $key => $label)
                                         <option value="{{ $key }}">{{ $label }}</option>
                                     @endforeach
+                                    @foreach(config('ticketing.momo.unavailable_providers', []) as $key => $label)
+                                        <option value="{{ $key }}" disabled>{{ $label }} — coming soon</option>
+                                    @endforeach
                                 </select>
                             </div>
                         </div>
+
+                        @if(count(config('ticketing.momo.unavailable_providers', [])) > 0)
+                            <p class="rounded-xl border border-amber/40 bg-amber/10 px-3 py-2 text-xs text-amber">
+                                {{ implode(', ', config('ticketing.momo.unavailable_providers')) }} is coming soon.
+                                Pay with {{ implode(' or ', config('ticketing.momo.providers')) }} for now — your ticket is issued the moment the PIN prompt is approved.
+                            </p>
+                        @endif
 
                         <div>
                             <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">MoMo number</label>
