@@ -61,7 +61,7 @@ RUN set -eux; \
     sed -ri -e 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf; \
     grep -q 'DocumentRoot /var/www/html/public' /etc/apache2/sites-available/000-default.conf; \
     if [ -f /usr/local/etc/php/php.ini-production ]; then cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; fi; \
-    printf '%s\n' 'opcache.enable=1' 'opcache.memory_consumption=192' 'opcache.max_accelerated_files=20000' 'opcache.validate_timestamps=0' 'max_execution_time=60' 'memory_limit=256M' 'output_buffering=4096' >> /usr/local/etc/php/php.ini; \
+    printf '%s\n' 'opcache.enable=1' 'opcache.memory_consumption=192' 'opcache.max_accelerated_files=20000' 'opcache.validate_timestamps=0' 'max_execution_time=60' 'memory_limit=256M' 'output_buffering=4096' 'implicit_flush=Off' >> /usr/local/etc/php/php.ini; \
     mkdir -p database; \
     chown -R www-data:www-data storage bootstrap/cache database; \
     chmod -R 775 storage bootstrap/cache database
@@ -71,4 +71,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 10000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["sh", "-c", "php artisan migrate --force && php artisan db:seed --force && apache2-foreground"]
+CMD ["sh", "-c", "php artisan config:clear && php artisan cache:clear && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
