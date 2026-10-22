@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
 use App\Models\WebhookEvent;
-use App\Services\PaymentGateway\Contracts\MomoGateway;
-use App\Services\PaymentProcessor;
-use App\Support\Money;
+use App\Services\WebhookSettlement;
 use App\Support\WebhookPayload;
 use App\Support\WebhookSignature;
 use Illuminate\Http\JsonResponse;
@@ -17,9 +14,18 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Acknowledges Mobile Money callbacks.
+ *
+ * The endpoint verifies the callback, stores the receipt and answers 200;
+ * the provider confirmation lookup and the ledger write are deferred until
+ * after the response has been flushed, because Render free instances cut
+ * requests at 50 seconds. The settlement itself lives in
+ * {@see WebhookSettlement}.
+ */
 final class MomoWebhookController extends Controller
 {
-    public function __invoke(Request $request, MomoGateway $gateway, PaymentProcessor $processor): JsonResponse
+    public function __invoke(Request $request, WebhookSettlement $settlement): JsonResponse
     {
         $provider = $request->attributes->get(WebhookSignature::ATTRIBUTE);
 
@@ -61,154 +67,50 @@ final class MomoWebhookController extends Controller
             return response()->json(['status' => false, 'message' => 'missing reference'], 422);
         }
 
-        $duplicate = false;
-
-        DB::transaction(function () use ($txRef, $data, $payload, $provider, $confirmation, $gateway, $processor, &$duplicate): void {
+        $recorded = DB::transaction(static function () use ($txRef, $payload, $provider): int {
             /*
              * The unique index on (provider, event_id) is the single source of
-             * truth for idempotency. A replayed callback loses the insert race
-             * and is acknowledged without touching the ledger.
+             * truth for idempotency: a replayed callback loses the insert race.
+             *
+             * `processed_at` stays null until a settlement finishes, which is
+             * what lets an interrupted settlement be driven again from this
+             * row without any local state.
              */
-            $recorded = WebhookEvent::query()->insertOrIgnore([
+            return WebhookEvent::query()->insertOrIgnore([
                 'provider' => $provider,
                 'event_id' => $txRef,
                 'payload' => json_encode($payload, JSON_THROW_ON_ERROR),
-                'processed_at' => now(),
+                'processed_at' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+        });
 
-            if ($recorded === 0) {
-                $duplicate = true;
+        $event = WebhookEvent::query()
+            ->where('provider', $provider)
+            ->where('event_id', $txRef)
+            ->first();
 
-                return;
-            }
+        if ($event === null) {
+            Log::error('momo webhook receipt could not be stored', ['tx_ref' => $txRef, 'provider' => $provider]);
 
-            $order = Order::query()->where('tx_ref', $txRef)->first();
+            return response()->json(['status' => false, 'message' => 'receipt not stored'], 500);
+        }
 
-            if ($order === null) {
-                Log::warning('momo webhook for unknown tx_ref', ['tx_ref' => $txRef, 'provider' => $provider]);
-
-                return;
-            }
-
-            if ($order->isPaid()) {
-                Log::info('momo webhook for an order that is already settled', ['tx_ref' => $txRef]);
-
-                return;
-            }
-
-            $settlement = $confirmation
-                ? $this->confirmWithProvider($order, $data, $gateway)
-                : $this->settleFromPayload($order, $data);
-
-            if ($settlement === null) {
-                return;
-            }
-
-            $processor->markPaid($order, $settlement, $provider);
-        }, 3);
-
-        if ($duplicate) {
+        if ($recorded === 0 && $event->processed_at !== null) {
             return response()->json(['status' => true, 'message' => 'duplicate ignored']);
         }
 
+        /*
+         * The gateway gets its answer now. Settlement runs in the
+         * terminating phase, after the response has been flushed, so the
+         * provider status lookup never counts against the gateway's or
+         * Render's request window.
+         */
+        app()->terminating(static function () use ($settlement, $event): void {
+            $settlement->settle($event);
+        });
+
         return response()->json(['status' => true, 'message' => 'ok']);
-    }
-
-    /**
-     * The provider signed the payload, so the payload is the proof.
-     *
-     * @param  array<string,mixed>  $data
-     * @return array<string,mixed>|null
-     */
-    private function settleFromPayload(Order $order, array $data): ?array
-    {
-        $amount = $data['amount'];
-
-        if ($amount === null || ! Money::matchesAmount($amount, $order->total_minor, $order->currency)) {
-            Log::warning('momo webhook amount mismatch', [
-                'tx_ref' => $order->tx_ref,
-                'expected' => $order->total_minor,
-                'received' => $amount,
-            ]);
-
-            return null;
-        }
-
-        return [
-            'reference' => $order->tx_ref,
-            'amount' => $amount,
-            'currency' => $data['currency'] ?? $order->currency,
-            'channel' => $data['channel'] ?? 'mobile_money',
-            'paid_at' => $data['paid_at'] ?? now()->toIso8601String(),
-        ];
-    }
-
-    /**
-     * The provider does not sign its notifications, so the charge is proven
-     * with a server to server status lookup.
-     *
-     * The payment id has to be the one the platform stored when it asked the
-     * provider to collect, and the confirmed transaction has to carry the
-     * same reference and the same amount as the order.
-     *
-     * @param  array<string,mixed>  $data
-     * @return array<string,mixed>|null
-     */
-    private function confirmWithProvider(Order $order, array $data, MomoGateway $gateway): ?array
-    {
-        $paymentId = (string) ($data['payment_id'] ?? '');
-
-        if ($paymentId === '' || $paymentId !== (string) $order->gateway_reference) {
-            Log::warning('momo webhook payment id does not belong to the order', [
-                'tx_ref' => $order->tx_ref,
-                'payment_id' => $paymentId,
-            ]);
-
-            return null;
-        }
-
-        $confirmation = $gateway->verify($paymentId);
-
-        if (! is_array($confirmation) || ($confirmation['status'] ?? null) !== 'success') {
-            Log::info('momo webhook could not be confirmed with the provider', [
-                'tx_ref' => $order->tx_ref,
-                'status' => is_array($confirmation) ? ($confirmation['status'] ?? null) : null,
-            ]);
-
-            return null;
-        }
-
-        $externalId = (string) ($confirmation['external_id'] ?? '');
-
-        if ($externalId !== '' && $externalId !== $order->tx_ref) {
-            Log::warning('momo webhook confirmation carries a different reference', [
-                'tx_ref' => $order->tx_ref,
-                'external_id' => $externalId,
-            ]);
-
-            return null;
-        }
-
-        $amount = $confirmation['amount'] ?? $data['amount'];
-
-        if ($amount === null || ! Money::matchesAmount($amount, $order->total_minor, $order->currency)) {
-            Log::warning('momo webhook confirmed amount mismatch', [
-                'tx_ref' => $order->tx_ref,
-                'expected' => $order->total_minor,
-                'received' => $amount,
-            ]);
-
-            return null;
-        }
-
-        return [
-            'reference' => $paymentId,
-            'amount' => $amount,
-            'currency' => $confirmation['currency'] ?? ($data['currency'] ?? $order->currency),
-            'channel' => $confirmation['channel'] ?? 'mobile_money',
-            'paid_at' => $confirmation['paid_at'] ?? now()->toIso8601String(),
-        ];
     }
 }

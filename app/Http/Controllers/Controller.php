@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Services\HoldExpiryService;
+use App\Services\WebhookSettlement;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
@@ -15,10 +16,11 @@ abstract class Controller extends BaseController
     use AuthorizesRequests, ValidatesRequests;
 
     /**
-     * Release expired ticket holds. Render free instances have no cron,
-     * so the sweep runs opportunistically on inbound requests.
+     * Release expired ticket holds and finish webhook settlements that were
+     * interrupted. Render free instances have no cron and no queue worker,
+     * so both sweeps run opportunistically on inbound requests.
      */
-    protected function sweepExpiredHolds(HoldExpiryService $sweep): void
+    protected function sweepExpiredHolds(HoldExpiryService $sweep, WebhookSettlement $settlement): void
     {
         if (Cache::get('ticketing:sweep:lock') !== null) {
             return;
@@ -28,6 +30,7 @@ abstract class Controller extends BaseController
 
         try {
             $sweep->sweep();
+            $settlement->retryUnsettled();
         } finally {
             Cache::forget('ticketing:sweep:lock');
         }

@@ -89,7 +89,24 @@ if [ "${DB_CONNECTION:-sqlite}" = "sqlite" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Application
+# 5. Persistent uploads
+# ---------------------------------------------------------------------------
+# The container filesystem is erased on every deploy; only the disk mounted
+# at /var/data survives. Organizer cover images are the only files the
+# application writes, so they are stored there and public/storage is linked
+# to that directory by the storage:link call below.
+if grep -q " /var/data " /proc/mounts; then
+  export PUBLIC_STORAGE_ROOT=/var/data/app/public
+  mkdir -p "$PUBLIC_STORAGE_ROOT"
+  chown www-data:www-data "$PUBLIC_STORAGE_ROOT" || true
+  log "Public storage: $PUBLIC_STORAGE_ROOT"
+else
+  warn "No disk is mounted at /var/data, so uploaded cover images are erased on"
+  warn "every deploy. Attach a Render disk at /var/data to keep them."
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Application
 # ---------------------------------------------------------------------------
 php artisan package:discover --ansi
 php artisan migrate --force --no-interaction

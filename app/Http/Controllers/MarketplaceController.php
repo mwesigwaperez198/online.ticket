@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\Listing;
 use App\Models\TicketType;
 use App\Services\HoldExpiryService;
+use App\Services\WebhookSettlement;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -26,9 +27,9 @@ final class MarketplaceController extends Controller
      */
     private const PICKS = 4;
 
-    public function index(Request $request, HoldExpiryService $sweep): View
+    public function index(Request $request, HoldExpiryService $sweep, WebhookSettlement $settlement): View
     {
-        $this->sweepExpiredHolds($sweep);
+        $this->sweepExpiredHolds($sweep, $settlement);
 
         $listings = $this->paginatePublished($request);
 
@@ -48,9 +49,9 @@ final class MarketplaceController extends Controller
      * received. Only the rendered HTML and the next cursor travel over the
      * wire; no listing internals are exposed.
      */
-    public function loadMore(Request $request, HoldExpiryService $sweep): JsonResponse
+    public function loadMore(Request $request, HoldExpiryService $sweep, WebhookSettlement $settlement): JsonResponse
     {
-        $this->sweepExpiredHolds($sweep);
+        $this->sweepExpiredHolds($sweep, $settlement);
 
         $page = max(1, $request->integer('page', 1));
         $listings = $this->paginatePublished($request, $page);
@@ -70,9 +71,9 @@ final class MarketplaceController extends Controller
         ]);
     }
 
-    public function show(string $slug, HoldExpiryService $sweep): View
+    public function show(string $slug, HoldExpiryService $sweep, WebhookSettlement $settlement): View
     {
-        $this->sweepExpiredHolds($sweep);
+        $this->sweepExpiredHolds($sweep, $settlement);
 
         $listing = Listing::query()
             ->published()
