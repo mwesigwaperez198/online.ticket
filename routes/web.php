@@ -96,6 +96,7 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/', [CmsController::class, 'index'])->name('dashboard');
         Route::get('/approvals', [OrganizerApprovalController::class, 'index'])->name('approvals.index');
+        Route::get('/approvals/{organizer}', fn() => redirect()->route('admin.approvals.index'))->name('approvals.show');
         Route::post('/approvals/{organizer}', [OrganizerApprovalController::class, 'update'])->name('approvals.update');
         Route::post('/listings/{listing}/moderate', [ModerationController::class, 'update'])->name('listings.moderate');
         Route::post('/listings/{listing}/feature', [ModerationController::class, 'feature'])->name('listings.feature');

@@ -298,6 +298,14 @@
     @endif
 
     <main class="flex-1">
+        @if(!request()->routeIs('home'))
+        <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+            <button onclick="history.back()" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-200 transition">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Back
+            </button>
+        </div>
+        @endif
         @yield('content')
     </main>
 

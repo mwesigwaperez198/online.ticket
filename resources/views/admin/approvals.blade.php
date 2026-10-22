@@ -110,7 +110,7 @@
                         </select>
                     </div>
                     <div class="flex items-end">
-                        <button class="btn-neon w-full rounded-xl px-4 py-2.5 text-sm">Save</button>
+                        <button class="btn-primary w-full rounded-xl px-4 py-2.5 text-sm">Save</button>
                     </div>
 
                     <div class="sm:col-span-2">
