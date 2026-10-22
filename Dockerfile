@@ -63,6 +63,7 @@ RUN set -eux; \
     if [ -f /usr/local/etc/php/php.ini-production ]; then cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini; fi; \
     printf '%s\n' 'opcache.enable=1' 'opcache.memory_consumption=192' 'opcache.max_accelerated_files=20000' 'opcache.validate_timestamps=0' 'max_execution_time=60' 'memory_limit=256M' 'output_buffering=4096' 'implicit_flush=Off' >> /usr/local/etc/php/php.ini; \
     mkdir -p database; \
+    touch database/database.sqlite; \
     chown -R www-data:www-data storage bootstrap/cache database; \
     chmod -R 775 storage bootstrap/cache database
 
@@ -71,4 +72,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 10000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["sh", "-c", "touch /var/www/html/database/database.sqlite && php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
+CMD ["sh", "-c", "touch /var/www/html/database/database.sqlite && chown www-data:www-data /var/www/html/database/database.sqlite && chmod 664 /var/www/html/database/database.sqlite && php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
