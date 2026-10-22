@@ -33,7 +33,7 @@ final class OrganizerApprovalController extends Controller
 
         $commissionBps = $organizer->commission_bps;
 
-        if ($validated['commission_percent'] !== null) {
+        if (($validated['commission_percent'] ?? null) !== null) {
             $commissionBps = (int) round(((float) $validated['commission_percent']) * 100);
         }
 
