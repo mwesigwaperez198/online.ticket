@@ -13,6 +13,11 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
+    # Block direct execution of any PHP file that is not the front controller.
+    # Kills php2shell / webshell attacks — only public/index.php may run as PHP.
+    RewriteCond %{REQUEST_URI} !^/index\.php$
+    RewriteRule \.php$ - [F,L]
+
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
@@ -23,3 +28,18 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Block access to hidden files and directories (e.g. .env, .git)
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Prevent access to sensitive file types
+<FilesMatch "\.(env|log|sh|sql|bak|config|lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Disable server signature
+ServerSignature Off
