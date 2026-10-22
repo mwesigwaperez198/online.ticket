@@ -47,6 +47,7 @@ final class ListingController extends Controller
 
         $validated = $request->validate([
             'type' => ['required', 'in:event,service'],
+            'intent' => ['nullable', 'in:draft,submit'],
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:5000'],
             'venue' => ['nullable', 'string', 'max:160'],
@@ -61,10 +62,18 @@ final class ListingController extends Controller
             'max_per_order' => ['required', 'integer', 'min:1', 'max:20'],
             'refund_window_hours' => ['required', 'integer', 'min:0', 'max:720'],
             'ticket_types' => ['nullable', 'array'],
-            'ticket_types.*.name' => ['required_with:ticket_types', 'string', 'max:80'],
-            'ticket_types.*.price' => ['required_with:ticket_types', 'numeric', 'min:0'],
-            'ticket_types.*.capacity' => ['required_with:ticket_types', 'integer', 'min:1'],
+            'ticket_types.*.name' => ['nullable', 'string', 'max:80'],
+            'ticket_types.*.price' => ['nullable', 'numeric', 'min:0'],
+            'ticket_types.*.capacity' => ['nullable', 'integer', 'min:1'],
+            'cover_image' => ['nullable', ...array_slice(ImageUpload::rules(), 1)],
         ]);
+
+        foreach ((array) ($validated['ticket_types'] ?? []) as $tier) {
+            if (collect($tier)->filter(fn ($value) => filled($value))->isNotEmpty()
+                && (! filled($tier['name'] ?? null) || ! filled($tier['price'] ?? null) || ! filled($tier['capacity'] ?? null))) {
+                return back()->withErrors(['ticket_types' => 'Complete the name, price and capacity for each ticket tier.'])->withInput();
+            }
+        }
 
         $listing = DB::transaction(function () use ($validated, $organizer): Listing {
             $listing = Listing::query()->create([
@@ -107,10 +116,26 @@ final class ListingController extends Controller
             return $listing;
         });
 
+        if ($request->hasFile('cover_image')) {
+            $this->storeCover($listing, $request->file('cover_image'));
+        }
+
+        $submitted = ($validated['intent'] ?? 'draft') === 'submit'
+            && $this->hasSubmissionRequirements($listing);
+
+        if ($submitted) {
+            $listing->forceFill(['status' => 'pending'])->save();
+            Audit::log('listing.submitted', $listing);
+        }
+
         Audit::log('listing.created', $listing, ['type' => $listing->type]);
 
         return redirect()->route('organizer.listings.edit', $listing)
-            ->with('status', 'Listing saved as draft. Submit it for approval when ready.');
+            ->with($submitted ? 'status' : (($validated['intent'] ?? 'draft') === 'submit' ? 'error' : 'status'), $submitted
+                ? 'Submitted for approval.'
+                : (($validated['intent'] ?? 'draft') === 'submit'
+                    ? 'Your draft was saved, but add at least one ticket tier and a banner image before submitting.'
+                    : 'Listing saved as draft. Submit it for approval when ready.'));
     }
 
     public function edit(Listing $listing): View|RedirectResponse
@@ -132,6 +157,7 @@ final class ListingController extends Controller
         }
 
         $validated = $request->validate([
+            'intent' => ['nullable', 'in:draft,submit'],
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:5000'],
             'venue' => ['nullable', 'string', 'max:160'],
@@ -145,13 +171,31 @@ final class ListingController extends Controller
             'ends_at' => ['nullable', 'date', 'after:starts_at'],
             'max_per_order' => ['required', 'integer', 'min:1', 'max:20'],
             'refund_window_hours' => ['required', 'integer', 'min:0', 'max:720'],
+            'cover_image' => ['nullable', ...array_slice(ImageUpload::rules(), 1)],
         ]);
 
+        unset($validated['intent'], $validated['cover_image']);
         $listing->fill($validated)->save();
+
+        if ($request->hasFile('cover_image')) {
+            $this->storeCover($listing, $request->file('cover_image'));
+        }
+
+        $submitted = ($request->input('intent', 'draft') === 'submit')
+            && $this->hasSubmissionRequirements($listing);
+
+        if ($submitted) {
+            $listing->forceFill(['status' => 'pending'])->save();
+            Audit::log('listing.submitted', $listing);
+        }
 
         Audit::log('listing.updated', $listing);
 
-        return back()->with('status', 'Listing updated.');
+        return back()->with($submitted ? 'status' : ($request->input('intent') === 'submit' ? 'error' : 'status'), $submitted
+            ? 'Submitted for approval.'
+            : ($request->input('intent') === 'submit'
+                ? 'Your draft was saved, but add at least one ticket tier and a banner image before submitting.'
+                : 'Listing updated.'));
     }
 
     public function publish(Listing $listing): RedirectResponse
@@ -160,8 +204,8 @@ final class ListingController extends Controller
             abort(403);
         }
 
-        if ($listing->ticketTypes()->count() === 0 && $listing->isEvent()) {
-            return back()->with('error', 'Add at least one ticket tier before submitting.');
+        if (! $this->hasSubmissionRequirements($listing)) {
+            return back()->with('error', 'Add at least one ticket tier and a banner image before submitting.');
         }
 
         $listing->forceFill(['status' => 'pending'])->save();
@@ -197,20 +241,9 @@ final class ListingController extends Controller
             return back()->with('error', 'Only JPEG, PNG or WebP images are accepted.');
         }
 
-        $previous = $listing->cover_image;
-        $path = $file->storeAs('covers', Str::random(40).'.'.$extension, ['disk' => 'public']);
-
-        if ($path === false) {
+        if (! $this->storeCover($listing, $file)) {
             return back()->with('error', 'We could not store that image. Please try again.');
         }
-
-        $listing->forceFill(['cover_image' => $path])->save();
-
-        if (is_string($previous) && $previous !== '') {
-            Storage::disk('public')->delete($previous);
-        }
-
-        Audit::log('listing.cover_uploaded', $listing, ['path' => $path]);
 
         return back()->with('status', 'Banner image updated.');
     }
@@ -235,5 +268,37 @@ final class ListingController extends Controller
     private function owns(Listing $listing): bool
     {
         return $listing->organizer_id === ($this->organizer()?->id ?? 0);
+    }
+
+    private function hasSubmissionRequirements(Listing $listing): bool
+    {
+        return (! $listing->isEvent() || $listing->ticketTypes()->exists())
+            && filled($listing->cover_image);
+    }
+
+    private function storeCover(Listing $listing, UploadedFile $file): bool
+    {
+        $extension = ImageUpload::extensionFor($file);
+
+        if ($extension === null) {
+            return false;
+        }
+
+        $previous = $listing->cover_image;
+        $path = $file->storeAs('covers', Str::random(40).'.'.$extension, ['disk' => 'public']);
+
+        if ($path === false) {
+            return false;
+        }
+
+        $listing->forceFill(['cover_image' => $path])->save();
+
+        if (is_string($previous) && $previous !== '') {
+            Storage::disk('public')->delete($previous);
+        }
+
+        Audit::log('listing.cover_uploaded', $listing, ['path' => $path]);
+
+        return true;
     }
 }

@@ -98,6 +98,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/approvals', [OrganizerApprovalController::class, 'index'])->name('approvals.index');
         Route::get('/approvals/{organizer}', fn() => redirect()->route('admin.approvals.index'))->name('approvals.show');
         Route::post('/approvals/{organizer}', [OrganizerApprovalController::class, 'update'])->name('approvals.update');
+        Route::get('/listings/{listing}/review', [ModerationController::class, 'show'])->name('listings.review');
         Route::post('/listings/{listing}/moderate', [ModerationController::class, 'update'])->name('listings.moderate');
         Route::post('/listings/{listing}/feature', [ModerationController::class, 'feature'])->name('listings.feature');
         Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger');

@@ -7,7 +7,7 @@
     <h1 class="font-display text-3xl font-black">{{ $listing->exists ? 'Edit listing' : 'New listing' }}</h1>
     <p class="mt-1 text-sm text-slate-500">Events sell ticket tiers. Services sell bookable slots.</p>
 
-    <form method="POST" action="{{ $listing->exists ? route('organizer.listings.update', $listing) : route('organizer.listings.store') }}" class="mt-8 space-y-6">
+    <form id="listing-form" data-is-new="{{ $listing->exists ? 'false' : 'true' }}" data-draft-key="novara-listing-draft-{{ auth()->id() }}" method="POST" enctype="multipart/form-data" action="{{ $listing->exists ? route('organizer.listings.update', $listing) : route('organizer.listings.store') }}" class="mt-8 space-y-6">
         @csrf
         @if($listing->exists) @method('PUT') @endif
 
@@ -135,36 +135,76 @@
             </div>
         @endif
 
+        <div class="panel space-y-4 p-6">
+            <div>
+                <h2 class="font-display text-lg font-bold">Event banner</h2>
+                <p class="mt-1 text-xs text-slate-500">JPEG, PNG or WebP up to 2 MB. The image is saved with your listing and shown to the admin during review.</p>
+            </div>
+            @if($listing->coverImageUrl())
+                <img id="cover-preview" src="{{ $listing->coverImageUrl() }}" alt="Listing banner preview" class="aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
+            @else
+                <img id="cover-preview" alt="Selected banner preview" class="hidden aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
+            @endif
+            <div>
+                <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Choose image</label>
+                <input id="cover-input" type="file" name="cover_image" accept="image/jpeg,image/png,image/webp"
+                       class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-neon/15 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neon hover:file:bg-neon/25">
+            </div>
+        </div>
+
         <div class="flex flex-wrap gap-3">
-            <button class="btn-neon rounded-xl px-6 py-3">Save listing</button>
+            <button type="submit" name="intent" value="draft" class="btn-ghost rounded-xl px-6 py-3">Save draft</button>
+            <button type="submit" name="intent" value="submit" class="btn-neon rounded-xl px-6 py-3">Submit for approval</button>
             <a href="{{ route('organizer.listings.index') }}" class="btn-ghost rounded-xl px-6 py-3">Cancel</a>
         </div>
     </form>
-
-    @if($listing->exists)
-        <form method="POST" action="{{ route('organizer.listings.cover', $listing) }}" enctype="multipart/form-data"
-              class="panel mt-6 space-y-4 p-6">
-            @csrf
-
-            <div>
-                <h2 class="font-display text-lg font-bold">Event banner</h2>
-                <p class="mt-1 text-xs text-slate-500">
-                    JPEG, PNG or WebP only, up to 2 MB. The file type is checked from its content, not its name.
-                </p>
-            </div>
-
-            @if($listing->coverImageUrl())
-                <img src="{{ $listing->coverImageUrl() }}" alt="Current banner" class="aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
-            @endif
-
-            <div>
-                <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Choose image</label>
-                <input type="file" name="cover_image" accept="image/jpeg,image/png,image/webp" required
-                       class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-neon/15 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neon hover:file:bg-neon/25">
-            </div>
-
-            <button class="btn-ghost rounded-xl px-5 py-2.5 text-sm">Upload banner</button>
-        </form>
-    @endif
 </section>
+<script>
+(() => {
+    const form = document.getElementById('listing-form');
+    const preview = document.getElementById('cover-preview');
+    const imageInput = document.getElementById('cover-input');
+    const isNew = form?.dataset.isNew === 'true';
+    const storageKey = form?.dataset.draftKey;
+
+    imageInput?.addEventListener('change', () => {
+        const file = imageInput.files?.[0];
+        if (!file || !preview) return;
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('hidden');
+    });
+
+    if (!isNew || !form || !storageKey) return;
+
+    try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        for (const [name, value] of Object.entries(saved)) {
+            const fields = form.querySelectorAll(`[name="${CSS.escape(name)}"]`);
+            fields.forEach((field, index) => {
+                if (field.type !== 'file' && field.type !== 'hidden' && typeof value[index] !== 'undefined') {
+                    field.value = value[index];
+                }
+            });
+        }
+    } catch (_) {
+        localStorage.removeItem(storageKey);
+    }
+
+    let saveTimer;
+    const saveBrowserDraft = () => {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            const data = {};
+            for (const field of form.querySelectorAll('input[name], select[name], textarea[name]')) {
+                if (['file', 'hidden', 'submit'].includes(field.type)) continue;
+                (data[field.name] ||= []).push(field.value);
+            }
+            localStorage.setItem(storageKey, JSON.stringify(data));
+        }, 300);
+    };
+    form.addEventListener('input', saveBrowserDraft);
+    form.addEventListener('change', saveBrowserDraft);
+    form.addEventListener('submit', () => localStorage.removeItem(storageKey));
+})();
+</script>
 @endsection

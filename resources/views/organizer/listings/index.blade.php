@@ -24,6 +24,9 @@
                 $remaining = $listing->ticketTypes->sum(fn ($t) => max(0, $t->capacity - $t->sold_count - $t->held_count));
             @endphp
             <article class="panel panel-hover p-5">
+                @if($listing->coverImageUrl())
+                    <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="mb-4 aspect-video w-full rounded-lg object-cover">
+                @endif
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <p class="font-display text-lg font-bold leading-tight">{{ $listing->title }}</p>
@@ -41,12 +44,6 @@
 
                 <div class="mt-4 flex gap-2">
                     <a href="{{ route('organizer.listings.edit', $listing) }}" class="btn-ghost flex-1 rounded-lg px-3 py-2 text-center text-xs uppercase tracking-wider">Edit</a>
-                    @if($listing->status === 'draft')
-                        <form method="POST" action="{{ route('organizer.listings.publish', $listing) }}" class="flex-1">
-                            @csrf
-                            <button class="btn-neon w-full rounded-lg px-3 py-2 text-xs uppercase tracking-wider">Submit</button>
-                        </form>
-                    @endif
                     @if(in_array($listing->status, ['published', 'live'], true))
                         <a href="{{ route('events.show', $listing->slug) }}" class="btn-ghost flex-1 rounded-lg px-3 py-2 text-center text-xs uppercase tracking-wider">View</a>
                     @endif

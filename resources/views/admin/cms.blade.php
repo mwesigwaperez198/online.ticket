@@ -153,23 +153,26 @@
             </div>
             <div class="overflow-x-auto">
                 <table class="data-table w-full min-w-[480px]">
-                    <thead><tr><th>Listing</th><th>Organizer</th><th>Status</th><th></th></tr></thead>
+                    <thead><tr><th>Preview</th><th>Listing</th><th>Organizer</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                         @forelse($pendingListings as $listing)
                             <tr>
+                                <td>
+                                    @if($listing->coverImageUrl())
+                                        <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="h-12 w-20 rounded-md object-cover">
+                                    @else
+                                        <span class="text-xs text-slate-500">No banner</span>
+                                    @endif
+                                </td>
                                 <td class="text-slate-200 font-medium">{{ $listing->title }}</td>
                                 <td class="text-slate-400 text-xs">{{ $listing->organizer?->business_name }}</td>
                                 <td><span class="pill pill-pending">pending</span></td>
                                 <td>
-                                    <form method="POST" action="{{ route('admin.listings.moderate', $listing) }}">
-                                        @csrf
-                                        <input type="hidden" name="status" value="published">
-                                        <button class="text-xs text-acid hover:underline font-medium">Publish</button>
-                                    </form>
+                                    <a href="{{ route('admin.listings.review', $listing) }}" class="text-xs text-neon hover:underline font-medium">Review →</a>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="py-10 text-center text-sm text-slate-600">Nothing waiting for review.</td></tr>
+                            <tr><td colspan="5" class="py-10 text-center text-sm text-slate-600">Nothing waiting for review.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
