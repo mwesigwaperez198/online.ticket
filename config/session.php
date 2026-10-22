@@ -18,7 +18,11 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => (function() {
+        $valid = ['file','cookie','database','memcached','redis','dynamodb','array'];
+        $d = env('SESSION_DRIVER', 'database');
+        return in_array($d, $valid) ? $d : 'database';
+    })(),
 
     /*
     |--------------------------------------------------------------------------
