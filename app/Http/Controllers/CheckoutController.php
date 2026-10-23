@@ -37,13 +37,24 @@ final class CheckoutController extends Controller
 
         try {
             $order = $checkout->createPendingOrder($validated);
-        } catch (\RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
-            Log::error('checkout failed', ['error' => $e->getMessage()]);
+    Log::error('payment initialization failed', [
+        'tx_ref' => $order->tx_ref,
+        'error' => $e->getMessage(),
+        'trace' => $e->getTraceAsString(),
+        'gateway' => $gateway->name(),
+    ]);
 
-            return back()->with('error', 'We could not reserve those tickets. Please try again.');
-        }
+    $checkout->releaseHold($order);
+    TicketingNotifier::user(
+        $order->user,
+        'Mobile Money checkout could not start — '.$order->tx_ref,
+        'We could not start the payment request for your order. The ticket hold was released; no payment was completed.',
+        ['label' => 'View order', 'url' => route('buyer.orders.show', $order)],
+    );
+
+    return back()->with('error', $e->getMessage());
+}
 
         try {
             $initialization = $gateway->initialize([
