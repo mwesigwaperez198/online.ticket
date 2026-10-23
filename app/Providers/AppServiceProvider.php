@@ -49,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
             if ($secret === '') {
                 if ($this->app->environment('production')) {
                     Log::critical('PAYSTACK_SECRET_KEY is not set — Mobile Money payments are disabled on this deployment.');
+
                     return new UnavailableMomoGateway;
                 }
 
@@ -65,6 +66,12 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(HoldExpiryService::class);
     }
 
+    /**
+     * The MTN MoMo Collections gateway.
+     *
+     * A deployment without an MTN subscription key must never settle a
+     * payment, so the unavailable gateway is bound instead.
+     */
     private function mtnGateway(): MomoGateway
     {
         $primary = trim((string) config('ticketing.momo.mtn.primary_key'));
@@ -117,5 +124,34 @@ class AppServiceProvider extends ServiceProvider
         Blade::directive('moneyRaw', static fn (string $expression): string => "<?php echo number_format({$expression} / 100, 2); ?>");
     }
 
-    // rest of your file continues...
+    /**
+     * Named rate limiters used by the route definitions.
+     */
+    private function registerRateLimiters(): void
+    {
+        RateLimiter::for('checkout', function (Request $request): array {
+            return [
+                Limit::perMinute(5)->by('checkout:ip:'.$request->ip()),
+                Limit::perMinute(10)->by('checkout:user:'.($request->user()?->getAuthIdentifier() ?? 'guest')),
+            ];
+        });
+
+        RateLimiter::for('checkout-status', function (Request $request): Limit {
+            return Limit::perMinute(60)->by('checkout-status:'.($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+
+        RateLimiter::for('login', function (Request $request): Limit {
+            $email = strtolower((string) $request->input('email'));
+
+            return Limit::perMinute(5)->by('login:'.sha1($email.'|'.$request->ip()));
+        });
+
+        RateLimiter::for('webhook', function (Request $request): Limit {
+            return Limit::perMinute(120)->by('webhook:'.$request->ip());
+        });
+
+        RateLimiter::for('api', function (Request $request): Limit {
+            return Limit::perMinute(60)->by('api:'.($request->user()?->getAuthIdentifier() ?? $request->ip()));
+        });
+    }
 }
