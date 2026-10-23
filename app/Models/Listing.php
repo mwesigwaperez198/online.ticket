@@ -139,6 +139,15 @@ class Listing extends Model
         return $this->latitude !== null && $this->longitude !== null;
     }
 
+    public static function mediaDisk(): string
+    {
+        $keysConfigured = filled(env('IMAGEKIT_PUBLIC_KEY'))
+            && filled(env('IMAGEKIT_PRIVATE_KEY'))
+            && filled(env('IMAGEKIT_URL_ENDPOINT'));
+
+        return $keysConfigured ? 'imagekit' : 'public';
+    }
+
     /**
      * The public URL of the event banner, if one was uploaded.
      */
@@ -153,7 +162,7 @@ class Listing extends Model
         }
 
         /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk('public');
+        $disk = Storage::disk(self::mediaDisk());
 
         return $disk->url($this->cover_image);
     }

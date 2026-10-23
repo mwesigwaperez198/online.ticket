@@ -50,6 +50,14 @@ return [
             'report' => false,
         ],
 
+        'imagekit' => [
+            'driver' => 'imagekit',
+            'public_key' => env('IMAGEKIT_PUBLIC_KEY'),
+            'private_key' => env('IMAGEKIT_PRIVATE_KEY'),
+            'url_endpoint' => env('IMAGEKIT_URL_ENDPOINT'),
+            'folder' => env('IMAGEKIT_FOLDER', ''),
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
@@ -70,7 +78,7 @@ return [
     | Symbolic Links
     |--------------------------------------------------------------------------
     |
-    | Here you may configure the symbolic links that will be created when the
+    | Here you may specify the symbolic links that will be created when the
     | `storage:link` Artisan command is executed. The array keys should be
     | the locations of the links and the values should be their targets.
     |

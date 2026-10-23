@@ -21,7 +21,7 @@ class ListingImage extends Model
     public function url(): string
     {
         /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk('public');
+        $disk = Storage::disk(Listing::mediaDisk());
 
         return $disk->url($this->path);
     }

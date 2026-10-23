@@ -309,7 +309,7 @@ final class ListingController extends Controller
             abort(403);
         }
 
-        Storage::disk('public')->delete($image->path);
+        Storage::disk($this->mediaDisk())->delete($image->path);
         $image->delete();
 
         Audit::log('listing.gallery_image_deleted', $listing, ['image_id' => $image->id]);
@@ -345,6 +345,11 @@ final class ListingController extends Controller
             && filled($listing->cover_image);
     }
 
+    private function mediaDisk(): string
+    {
+        return Listing::mediaDisk();
+    }
+
     private function storeCover(Listing $listing, UploadedFile $file): bool
     {
         $extension = ImageUpload::extensionFor($file);
@@ -363,7 +368,7 @@ final class ListingController extends Controller
         $listing->forceFill(['cover_image' => $path])->save();
 
         if (is_string($previous) && $previous !== '') {
-            Storage::disk('public')->delete($previous);
+            Storage::disk($this->mediaDisk())->delete($previous);
         }
 
         Audit::log('listing.cover_uploaded', $listing, ['path' => $path]);
@@ -412,7 +417,7 @@ final class ListingController extends Controller
 
     private function storeUploadedImage(UploadedFile $file, string $directory, string $extension): string|false
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk($this->mediaDisk());
         $filename = Str::random(40).'.'.$extension;
         $path = trim($directory, '/').'/'.$filename;
 
