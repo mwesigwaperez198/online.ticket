@@ -22,7 +22,7 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
     PORT=10000
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends unzip libpq-dev \
+ && apt-get install -y --no-install-recommends unzip libpq-dev util-linux \
  && docker-php-ext-install pdo_pgsql \
  && rm -rf /var/lib/apt/lists/*
 
@@ -70,4 +70,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 10000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan storage:link --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
+CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && if [ -f \"$DB_DATABASE\" ]; then chown www-data:www-data \"$DB_DATABASE\"; fi && php artisan storage:link --force && test -L public/storage && test \"$(readlink public/storage)\" = \"${PUBLIC_STORAGE_ROOT:-/var/data/app/public}\" && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]

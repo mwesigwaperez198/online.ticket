@@ -121,10 +121,16 @@ final class ListingController extends Controller
         });
 
         if ($request->hasFile('cover_image')) {
-            $this->storeCover($listing, $request->file('cover_image'));
+            if (! $this->storeCover($listing, $request->file('cover_image'))) {
+                return redirect()->route('organizer.listings.edit', $listing)
+                    ->with('error', 'The listing was saved, but its banner could not be written to persistent storage. Please retry the upload.');
+            }
         }
 
-        $this->storeGalleryImages($listing, (array) $request->file('gallery_images', []));
+        if (! $this->storeGalleryImages($listing, (array) $request->file('gallery_images', []))) {
+            return redirect()->route('organizer.listings.edit', $listing)
+                ->with('error', 'The listing was saved, but one or more gallery photos could not be written to persistent storage. Retry those uploads.');
+        }
 
         $submitted = ($validated['intent'] ?? 'draft') === 'submit'
             && $this->hasSubmissionRequirements($listing);
@@ -205,10 +211,14 @@ final class ListingController extends Controller
         $listing->fill($validated)->save();
 
         if ($request->hasFile('cover_image')) {
-            $this->storeCover($listing, $request->file('cover_image'));
+            if (! $this->storeCover($listing, $request->file('cover_image'))) {
+                return back()->withInput()->with('error', 'Your listing details were saved, but the banner could not be written to persistent storage. Please retry the upload.');
+            }
         }
 
-        $this->storeGalleryImages($listing, $galleryFiles);
+        if (! $this->storeGalleryImages($listing, $galleryFiles)) {
+            return back()->withInput()->with('error', 'Your listing details were saved, but one or more gallery photos could not be written to persistent storage. Retry those uploads.');
+        }
 
         $wantsSubmission = $request->input('intent', 'draft') === 'submit';
         $submitted = $wantsSubmission && $this->hasSubmissionRequirements($listing);
@@ -344,7 +354,7 @@ final class ListingController extends Controller
         }
 
         $previous = $listing->cover_image;
-        $path = $file->storeAs('covers', Str::random(40).'.'.$extension, ['disk' => 'public']);
+        $path = $this->storeUploadedImage($file, 'covers/'.$listing->id, $extension);
 
         if ($path === false) {
             return false;
@@ -364,22 +374,30 @@ final class ListingController extends Controller
     /**
      * @param  array<int, UploadedFile>  $files
      */
-    private function storeGalleryImages(Listing $listing, array $files): void
+    private function storeGalleryImages(Listing $listing, array $files): bool
     {
+        $storedAll = true;
+
         foreach ($files as $file) {
             if (! $file instanceof UploadedFile) {
+                $storedAll = false;
+
                 continue;
             }
 
             $extension = ImageUpload::extensionFor($file);
 
             if ($extension === null) {
+                $storedAll = false;
+
                 continue;
             }
 
-            $path = $file->storeAs('listing-galleries/'.$listing->id, Str::random(40).'.'.$extension, ['disk' => 'public']);
+            $path = $this->storeUploadedImage($file, 'listing-galleries/'.$listing->id, $extension);
 
             if ($path === false) {
+                $storedAll = false;
+
                 continue;
             }
 
@@ -388,5 +406,24 @@ final class ListingController extends Controller
                 'sort_order' => $listing->images()->count(),
             ]);
         }
+
+        return $storedAll;
+    }
+
+    private function storeUploadedImage(UploadedFile $file, string $directory, string $extension): string|false
+    {
+        $disk = Storage::disk('public');
+        $filename = Str::random(40).'.'.$extension;
+        $path = trim($directory, '/').'/'.$filename;
+
+        try {
+            if ($disk->putFileAs(trim($directory, '/'), $file, $filename, ['visibility' => 'public'])) {
+                return $path;
+            }
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+
+        return false;
     }
 }

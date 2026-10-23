@@ -1,6 +1,6 @@
 @php $helpFee = \App\Support\Money::percent((int) setting('platform_commission_bps', 2000)); @endphp
 
-<div class="fixed bottom-5 right-5 z-50 print:hidden">
+<div class="fixed bottom-24 right-4 z-40 print:hidden md:bottom-5 md:right-5 md:z-50">
 
     <div id="help-panel" class="hidden panel w-[min(22rem,calc(100vw-2rem))] overflow-hidden shadow-glow mb-3">
         <div class="flex items-center justify-between px-4 py-3 border-b border-edge/60">
@@ -64,7 +64,7 @@
     </div>
 
     <button id="help-toggle" aria-expanded="false"
-            class="ml-auto flex h-13 w-13 items-center justify-center rounded-full bg-gradient-to-br from-neon to-pulse text-void shadow-glow hover:scale-105 transition-transform focus:outline-none"
+            class="ml-auto flex h-13 w-13 items-center justify-center rounded-full bg-linear-to-br from-neon to-pulse text-void shadow-glow hover:scale-105 transition-transform focus:outline-none"
             style="height:3.25rem;width:3.25rem">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="9"/>

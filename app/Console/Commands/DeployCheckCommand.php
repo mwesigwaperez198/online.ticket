@@ -337,6 +337,36 @@ class DeployCheckCommand extends Command
 
         $linked = File::exists(public_path('storage'));
         $this->record('Public storage linked', $linked ? 'pass' : 'warn', $linked ? 'public/storage' : 'run php artisan storage:link');
+
+        if (filled(env('RENDER_SERVICE_ID'))) {
+            $databasePath = (string) config('database.connections.sqlite.database');
+            $databaseOnDisk = str_starts_with($databasePath, '/var/data/');
+            $this->record(
+                'Persistent database',
+                $databaseOnDisk ? 'pass' : 'fail',
+                $databaseOnDisk ? $databasePath : 'SQLite database must be stored under /var/data',
+            );
+
+            $publicRoot = (string) config('filesystems.disks.public.root');
+            $persistentRoot = realpath('/var/data');
+            $resolvedRoot = realpath($publicRoot);
+            $resolvedLink = realpath(public_path('storage'));
+            $rootOnDisk = $persistentRoot !== false
+                && $resolvedRoot !== false
+                && str_starts_with($resolvedRoot, rtrim($persistentRoot, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR);
+            $linkCorrect = $resolvedRoot !== false && $resolvedLink === $resolvedRoot;
+            $writable = is_dir($publicRoot) && is_writable($publicRoot);
+            $this->record(
+                'Persistent upload storage',
+                $rootOnDisk && $linkCorrect && $writable ? 'pass' : 'fail',
+                sprintf('root=%s; mounted=%s; link=%s; writable=%s', $publicRoot, $rootOnDisk ? 'yes' : 'no', $linkCorrect ? 'yes' : 'no', $writable ? 'yes' : 'no'),
+            );
+
+            return;
+        }
+
+        $this->record('Persistent database', 'warn', 'Render disk check skipped outside Render.');
+        $this->record('Persistent upload storage', 'warn', 'Render disk check skipped outside Render.');
     }
 
     /**
@@ -361,7 +391,8 @@ class DeployCheckCommand extends Command
         return match ($key) {
             'config' => app()->configurationIsCached(),
             'routes' => app()->routesAreCached(),
-            'views' => app()->viewsAreCached(),
+            'views' => File::isDirectory(storage_path('framework/views'))
+                && File::files(storage_path('framework/views')) !== [],
             default => false,
         };
     }
