@@ -70,8 +70,6 @@ final class MtnMomoGateway implements MomoGateway
             ->post('/collection/v1_0/request-payment', $body);
 
         if ($response->status() === 401 || $response->status() === 403) {
-            // The primary subscription key is not entitled to the collections
-            // product; the secondary key belongs to that product.
             $response = $this->client($this->secondaryKey)
                 ->withHeaders([
                     'X-Reference' => $txRef,
@@ -98,11 +96,6 @@ final class MtnMomoGateway implements MomoGateway
         ];
     }
 
-    /**
-     * Confirm a charge with MTN and report what MTN says about it.
-     *
-     * @return array<string,mixed>|null
-     */
     public function verify(string $txRef): ?array
     {
         $response = $this->client($this->primaryKey)
@@ -119,7 +112,6 @@ final class MtnMomoGateway implements MomoGateway
 
         $data = (array) $response->json();
         $status = strtoupper(trim((string) ($data['status'] ?? '')));
-
         $amount = $data['amount'] ?? null;
 
         return [
@@ -154,28 +146,17 @@ final class MtnMomoGateway implements MomoGateway
         $response = $this->client($this->primaryKey)->post('/collection/v1_0/refund', $body);
 
         if ($response->status() === 401 || $response->status() === 403) {
-            // The refund product can sit on the secondary subscription key.
             $response = $this->client($this->secondaryKey)->post('/collection/v1_0/refund', $body);
         }
 
         return $response->successful();
     }
 
-    /**
-     * MTN result notifications carry no signature. The notification is
-     * authenticated by the server to server status lookup that the webhook
-     * controller performs before an order is ever settled.
-     *
-     * @param  array<string,mixed>  $headers
-     */
     public function verifyWebhookSignature(string $rawBody, array $headers): bool
     {
         return true;
     }
 
-    /**
-     * The MSISDN in the international format MTN expects, e.g. 256772123456.
-     */
     public static function normaliseMsisdn(string $phone): string
     {
         $digits = preg_replace('/\D+/', '', $phone) ?? '';
@@ -191,11 +172,41 @@ final class MtnMomoGateway implements MomoGateway
         return $digits;
     }
 
+    private function accessToken(): string
+    {
+        $key = trim((string) config('ticketing.momo.mtn.consumer_key'));
+        $secret = trim((string) config('ticketing.momo.mtn.consumer_secret'));
+
+        if ($key === '' || $secret === '') {
+            throw new RuntimeException('MTN consumer key/secret are not configured.');
+        }
+
+        $basic = base64_encode($key.':'.$secret);
+        $subscriptionKey = $this->primaryKey !== '' ? $this->primaryKey : $this->secondaryKey;
+
+        $response = Http::baseUrl(rtrim($this->baseUrl, '/'))
+            ->withHeaders([
+                'Authorization' => 'Basic '.$basic,
+                'Ocp-Apim-Subscription-Key' => $subscriptionKey,
+                'Content-Type' => 'application/x-www-form-urlencoded',
+            ])
+            ->asForm()
+            ->post('/collection/token');
+
+        if ($response->failed()) {
+            throw new RuntimeException('MTN token request failed: '.$response->status());
+        }
+
+        $data = $response->json();
+
+        return (string) ($data['access_token'] ?? '');
+    }
+
     private function client(string $subscriptionKey): PendingRequest
     {
         return Http::baseUrl(rtrim($this->baseUrl, '/'))
             ->withHeaders([
-                'Authorization' => 'Bearer '.$this->targetEnvironment,
+                'Authorization' => 'Bearer '.$this->accessToken(),
                 'X-Target-Environment' => $this->targetEnvironment,
                 'Ocp-Apim-Subscription-Key' => $subscriptionKey,
                 'Content-Type' => 'application/json',
@@ -206,11 +217,6 @@ final class MtnMomoGateway implements MomoGateway
             ->retry(2, 400, self::retryOnServerError(), throw: false);
     }
 
-    /**
-     * Only a connection failure or a server error is worth repeating. A
-     * rejected subscription key has to fall back to the secondary key
-     * straight away instead of being retried.
-     */
     private static function retryOnServerError(): Closure
     {
         return static function (mixed $exception): bool {
