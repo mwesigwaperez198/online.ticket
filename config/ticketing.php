@@ -62,17 +62,18 @@ return [
          * gateway falls back to the secondary key when the primary one is not
          * entitled to the collections product.
          */
-        'mtn' => [
-            'base_url' => env('MTN_BASE_URL', 'https://sandbox.momodeveloper.mtn.com'),
-            'primary_key' => env('MTN_PRIMARY_KEY'),
-            'secondary_key' => env('MTN_SECONDARY_KEY'),
-            'target_environment' => env('MTN_TARGET_ENVIRONMENT', 'UgxAndMore'),
-            'callback_url' => env('MTN_CALLBACK_URL'),
-            'currency' => env('MTN_CURRENCY', 'UGX'),
-            'payee' => env('MTN_PAYEE', 'Novara'),
-            // Optional shared secret checked on top of the MTN confirmation.
-            'webhook_secret' => env('MTN_WEBHOOK_SECRET'),
-        ],
+'mtn' => [
+    'base_url' => env('MTN_BASE_URL', 'https://sandbox.momodeveloper.mtn.com'),
+    'consumer_key' => env('MTN_CONSUMER_KEY'),
+    'consumer_secret' => env('MTN_CONSUMER_SECRET'),
+    'primary_key' => env('MTN_PRIMARY_KEY'),
+    'secondary_key' => env('MTN_SECONDARY_KEY'),
+    'target_environment' => env('MTN_TARGET_ENVIRONMENT', 'UgxAndMore'),
+    'callback_url' => env('MTN_CALLBACK_URL'),
+    'currency' => env('MTN_CURRENCY', 'UGX'),
+    'payee' => env('MTN_PAYEE', 'Novara'),
+    'webhook_secret' => env('MTN_WEBHOOK_SECRET'),
+],
     ],
 
     'ticketing' => [
