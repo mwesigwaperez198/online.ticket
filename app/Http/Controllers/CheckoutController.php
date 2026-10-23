@@ -29,32 +29,23 @@ final class CheckoutController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:20'],
             'buyer_name' => ['required', 'string', 'max:160'],
             'buyer_email' => ['required', 'email', 'max:190'],
-            'buyer_phone' => ['required', 'string', 'max:30', 'regex:'.config('ticketing.momo.provider_regex', '/^(\+?256|0)\d{9}$/')],
+            'buyer_phone' => ['required', 'string', 'max:30', 'regex:' . config('ticketing.momo.provider_regex', '/^(\+?256|0)\d{9}$/')],
             'momo_provider' => ['required', Rule::in(array_keys(config('ticketing.momo.providers', ['mtn' => 'MTN', 'airtel' => 'Airtel'])))],
         ], [
-            'momo_provider.in' => 'That Mobile Money provider is not collecting right now. Pay with '.implode(' or ', config('ticketing.momo.providers')).'.',
+            'momo_provider.in' => 'That Mobile Money provider is not collecting right now. Pay with ' . implode(' or ', config('ticketing.momo.providers')) . '.',
         ]);
 
         try {
             $order = $checkout->createPendingOrder($validated);
         } catch (\Throwable $e) {
-    Log::error('payment initialization failed', [
-        'tx_ref' => $order->tx_ref,
-        'error' => $e->getMessage(),
-        'trace' => $e->getTraceAsString(),
-        'gateway' => $gateway->name(),
-    ]);
+            Log::error('checkout create pending order failed', [
+                'payload' => $request->all(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-    $checkout->releaseHold($order);
-    TicketingNotifier::user(
-        $order->user,
-        'Mobile Money checkout could not start — '.$order->tx_ref,
-        'We could not start the payment request for your order. The ticket hold was released; no payment was completed.',
-        ['label' => 'View order', 'url' => route('buyer.orders.show', $order)],
-    );
-
-    return back()->with('error', $e->getMessage());
-}
+            return back()->with('error', $e->getMessage());
+        }
 
         try {
             $initialization = $gateway->initialize([
@@ -81,12 +72,18 @@ final class CheckoutController extends Controller
 
             return redirect()->away($initialization['authorization_url']);
         } catch (\Throwable $e) {
-            Log::error('payment initialization failed', ['tx_ref' => $order->tx_ref, 'error' => $e->getMessage()]);
+            Log::error('payment initialization failed', [
+                'tx_ref' => $order->tx_ref,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'gateway' => $gateway->name(),
+            ]);
 
             $checkout->releaseHold($order);
+
             TicketingNotifier::user(
                 $order->user,
-                'Mobile Money checkout could not start — '.$order->tx_ref,
+                'Mobile Money checkout could not start — ' . $order->tx_ref,
                 'We could not start the payment request for your order. The ticket hold was released; no payment was completed.',
                 ['label' => 'View order', 'url' => route('buyer.orders.show', $order)],
             );
@@ -148,7 +145,7 @@ final class CheckoutController extends Controller
         }
 
         if (is_array($data) && in_array(($data['status'] ?? null), ['failed', 'cancelled', 'expired'], true)) {
-            $processor->markFailed($order, 'Mobile Money provider reported '.(string) $data['status']);
+            $processor->markFailed($order, 'Mobile Money provider reported ' . (string) $data['status']);
 
             return redirect()->route('buyer.orders.show', $order)
                 ->with('error', 'Mobile Money payment was not completed. Start checkout again if you still want tickets.');
@@ -168,7 +165,7 @@ final class CheckoutController extends Controller
 
         return view('checkout.prompt', [
             'order' => $order,
-            'provider' => (string) config('ticketing.momo.providers.'.$order->momo_provider, 'Mobile Money'),
+            'provider' => (string) config('ticketing.momo.providers.' . $order->momo_provider, 'Mobile Money'),
             'providerKey' => (string) $order->momo_provider,
         ]);
     }
