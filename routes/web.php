@@ -57,7 +57,7 @@ Route::middleware('auth')->group(function (): void {
 
     // The Mobile Money payment initiation path: five attempts a minute.
     Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkout.store');
-    Route::get('/checkout/return', [CheckoutController::class, 'return'])->name('checkout.return');
+    Route::match(['get', 'post'], '/checkout/return', [CheckoutController::class, 'return'])->name('checkout.return');
     Route::get('/checkout/prompt/{tx_ref}', [CheckoutController::class, 'prompt'])->name('checkout.prompt');
     Route::get('/checkout/status/{tx_ref}', [CheckoutController::class, 'status'])->middleware('throttle:checkout-status')->name('checkout.status');
     Route::get('/checkout/demo/{tx_ref}', [CheckoutController::class, 'demo'])->name('checkout.demo');
