@@ -20,9 +20,15 @@ class ListingImage extends Model
 
     public function url(): string
     {
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk(Listing::mediaDisk());
+        $path = $this->path;
 
-        return $disk->url($this->path);
+        if (is_string($path) && (str_starts_with($path, 'http://') || str_starts_with($path, 'https://'))) {
+            return $path;
+        }
+
+        /** @var FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+
+        return $disk->url($path);
     }
 }

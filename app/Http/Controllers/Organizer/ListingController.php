@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -309,7 +310,9 @@ final class ListingController extends Controller
             abort(403);
         }
 
-        Storage::disk($this->mediaDisk())->delete($image->path);
+        if (is_string($image->path) && ! str_starts_with($image->path, 'http://') && ! str_starts_with($image->path, 'https://')) {
+            Storage::disk('public')->delete($image->path);
+        }
         $image->delete();
 
         Audit::log('listing.gallery_image_deleted', $listing, ['image_id' => $image->id]);
@@ -345,11 +348,6 @@ final class ListingController extends Controller
             && filled($listing->cover_image);
     }
 
-    private function mediaDisk(): string
-    {
-        return Listing::mediaDisk();
-    }
-
     private function storeCover(Listing $listing, UploadedFile $file): bool
     {
         $extension = ImageUpload::extensionFor($file);
@@ -367,8 +365,8 @@ final class ListingController extends Controller
 
         $listing->forceFill(['cover_image' => $path])->save();
 
-        if (is_string($previous) && $previous !== '') {
-            Storage::disk($this->mediaDisk())->delete($previous);
+        if (is_string($previous) && $previous !== '' && ! str_starts_with($previous, 'http://') && ! str_starts_with($previous, 'https://')) {
+            Storage::disk('public')->delete($previous);
         }
 
         Audit::log('listing.cover_uploaded', $listing, ['path' => $path]);
@@ -417,7 +415,38 @@ final class ListingController extends Controller
 
     private function storeUploadedImage(UploadedFile $file, string $directory, string $extension): string|false
     {
-        $disk = Storage::disk($this->mediaDisk());
+        $publicKey = (string) config('services.imagekit.public_key');
+        $privateKey = (string) config('services.imagekit.private_key');
+        $urlEndpoint = trim((string) config('services.imagekit.url_endpoint'), '/');
+
+        if ($publicKey !== '' && $privateKey !== '' && $urlEndpoint !== '') {
+            $filename = Str::random(40).'.'.$extension;
+            $folder = trim($directory, '/');
+
+            try {
+                $response = Http::acceptJson()
+                    ->asMultipart()
+                    ->withBasicAuth($privateKey, '')
+                    ->post('https://upload.imagekit.io/api/v1/files/upload', [
+                        ['name' => 'file', 'contents' => fopen($file->getRealPath(), 'r'), 'filename' => $filename],
+                        ['name' => 'fileName', 'contents' => $filename],
+                        ['name' => 'folder', 'contents' => $folder],
+                        ['name' => 'useUniqueFileName', 'contents' => 'false'],
+                    ]);
+
+                if ($response->successful()) {
+                    $url = $response->json('url');
+
+                    if (is_string($url) && $url !== '') {
+                        return $url;
+                    }
+                }
+            } catch (\Throwable $exception) {
+                report($exception);
+            }
+        }
+
+        $disk = Storage::disk('public');
         $filename = Str::random(40).'.'.$extension;
         $path = trim($directory, '/').'/'.$filename;
 

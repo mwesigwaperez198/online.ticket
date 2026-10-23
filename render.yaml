@@ -76,6 +76,14 @@ services:
         value: Novara
       - key: MTN_WEBHOOK_SECRET
         sync: false
+      - key: IMAGEKIT_PUBLIC_KEY
+        sync: false
+      - key: IMAGEKIT_PRIVATE_KEY
+        sync: false
+      - key: IMAGEKIT_URL_ENDPOINT
+        sync: false
+      - key: IMAGEKIT_FOLDER
+        value: uploads
       - key: PLATFORM_COMMISSION_BPS
         value: "2000"
       - key: BRAND_NAME
