@@ -21,6 +21,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_mobile_navigation_exposes_browse_tickets_and_organizer_dashboard(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $this->createOrganizer($organizerUser);
 
@@ -35,6 +36,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_an_organizer_only_sees_their_own_listings(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser);
 
@@ -55,6 +57,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_an_organizer_dashboard_only_reports_their_own_sales(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser);
 
@@ -73,6 +76,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_an_organizer_cannot_edit_a_listing_owned_by_someone_else(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $this->createOrganizer($organizerUser);
 
@@ -92,6 +96,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_an_organizer_submits_their_mobile_money_payout_details(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser, [
             'payout_momo_number' => null,
@@ -125,6 +130,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_changing_the_payout_number_requires_a_new_approval(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser);
 
@@ -146,6 +152,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_a_payout_number_outside_uganda_is_rejected(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser, [
             'payout_momo_number' => null,
@@ -165,6 +172,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_an_organizer_cannot_open_the_admin_area(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $this->createOrganizer($organizerUser);
 
@@ -175,6 +183,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_the_admin_approves_the_organizer_at_zero_commission(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser, [
             'commission_bps' => null,
@@ -182,6 +191,7 @@ final class OrganizerPortalTest extends TestCase
             'approved_at' => null,
         ]);
 
+        /** @var User $admin */
         $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
 
         $this->actingAs($admin)
@@ -232,6 +242,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_the_organizer_scanner_checks_a_ticket_in_once(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser);
 
@@ -278,6 +289,7 @@ final class OrganizerPortalTest extends TestCase
 
     public function test_the_organizer_scanner_rejects_a_ticket_from_another_event(): void
     {
+        /** @var User $organizerUser */
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
         $organizer = $this->createOrganizer($organizerUser);
 

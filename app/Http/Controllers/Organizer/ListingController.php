@@ -161,6 +161,8 @@ final class ListingController extends Controller
             abort(403);
         }
 
+        $wasPublished = $listing->isLive();
+
         $validated = $request->validate([
             'intent' => ['nullable', 'in:draft,submit'],
             'title' => ['required', 'string', 'max:180'],
@@ -196,21 +198,26 @@ final class ListingController extends Controller
 
         $this->storeGalleryImages($listing, $galleryFiles);
 
-        $submitted = ($request->input('intent', 'draft') === 'submit')
-            && $this->hasSubmissionRequirements($listing);
+        $wantsSubmission = $request->input('intent', 'draft') === 'submit';
+        $submitted = $wantsSubmission && $this->hasSubmissionRequirements($listing);
 
-        if ($submitted) {
+        if ($wasPublished) {
+            $message = 'Listing updated and remains available to buyers.';
+        } elseif ($submitted) {
             $listing->forceFill(['status' => 'pending'])->save();
             Audit::log('listing.submitted', $listing);
+            $message = 'Submitted for approval.';
+        } elseif ($wantsSubmission) {
+            $message = 'Your draft was saved, but add at least one ticket tier and a banner image before submitting.';
+        } else {
+            $message = 'Listing updated.';
         }
 
         Audit::log('listing.updated', $listing);
 
-        return back()->with($submitted ? 'status' : ($request->input('intent') === 'submit' ? 'error' : 'status'), $submitted
-            ? 'Submitted for approval.'
-            : ($request->input('intent') === 'submit'
-                ? 'Your draft was saved, but add at least one ticket tier and a banner image before submitting.'
-                : 'Listing updated.'));
+        $flashType = $wasPublished || $submitted || ! $wantsSubmission ? 'status' : 'error';
+
+        return back()->with($flashType, $message);
     }
 
     public function publish(Listing $listing): RedirectResponse

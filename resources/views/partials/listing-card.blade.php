@@ -15,10 +15,10 @@
         @if($listing->coverImageUrl())
             <img src="{{ $listing->coverImageUrl() }}"
                  alt="{{ $listing->title }}"
-                 class="w-full object-cover transition duration-500 group-hover:scale-105 {{ $featured ? 'aspect-[16/9]' : 'aspect-video' }}"
+                 class="w-full object-cover transition duration-500 group-hover:scale-105 aspect-video"
                  loading="lazy">
         @else
-            <div class="relative overflow-hidden bg-gradient-to-br from-neon/15 via-void to-pulse/15 {{ $featured ? 'aspect-[16/9]' : 'aspect-video' }}">
+            <div class="relative overflow-hidden bg-linear-to-br from-neon/15 via-void to-pulse/15 aspect-video">
                 <div class="absolute inset-0 grid-dot opacity-30"></div>
                 <span class="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-lg font-bold text-white/70 leading-tight">
                     {{ $listing->title }}
@@ -27,7 +27,7 @@
         @endif
 
         {{-- Gradient overlay at bottom of image --}}
-        <div class="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div class="absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-black/60 to-transparent"></div>
 
         {{-- Badges --}}
         <div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
@@ -61,6 +61,9 @@
                     · {{ $listing->venue }}@if($listing->city), {{ $listing->city }}@endif
                 @endif
             </p>
+            @if($listing->isEvent())
+                <p class="mt-1 text-xs font-medium text-neon" data-countdown="{{ $listing->starts_at->toIso8601String() }}" @if($listing->ends_at) data-countdown-end="{{ $listing->ends_at->toIso8601String() }}" @endif>Loading countdown…</p>
+            @endif
         </div>
 
         <div class="flex items-center justify-between pt-2 border-t border-edge/60">

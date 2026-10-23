@@ -96,7 +96,7 @@
                 <a href="{{ route('organizer.listings.index') }}" class="text-xs uppercase tracking-wider text-neon hover:underline">All listings</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="data-table w-full min-w-[560px]">
+                <table class="data-table w-full min-w-140">
                     <thead><tr><th>Reference</th><th>Listing</th><th>Total</th><th>Status</th></tr></thead>
                     <tbody>
                         @forelse($recentOrders as $order)
@@ -120,7 +120,7 @@
                 <a href="{{ route('organizer.scanner') }}" class="text-xs uppercase tracking-wider text-neon hover:underline">Scan tickets</a>
             </div>
             <div class="overflow-x-auto">
-                <table class="data-table w-full min-w-[560px]">
+                <table class="data-table w-full min-w-140">
                     <thead><tr><th>Ticket</th><th>Listing</th><th>Scanned at</th><th>Status</th></tr></thead>
                     <tbody>
                         @forelse($checkIns as $ticket)

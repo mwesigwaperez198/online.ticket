@@ -77,7 +77,52 @@ final class ListingReviewFlowTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseMissing('listing_images', ['id' => $image->id]);
-        Storage::disk('public')->assertMissing($image->path);
+        $this->assertFalse(Storage::disk('public')->exists($image->path));
+    }
+
+    public function test_edits_to_a_published_listing_stay_live_and_visible_to_buyers(): void
+    {
+        $organizer = $this->createOrganizer();
+        $listing = $this->createListing($organizer, ['title' => 'Published Before Edit']);
+        $this->createTicketType($listing);
+
+        $this->actingAs($organizer->user)
+            ->put(route('organizer.listings.update', $listing), [
+                'intent' => 'submit',
+                'title' => 'Published After Edit',
+                'description' => 'Updated event details.',
+                'venue' => 'New venue',
+                'city' => 'Kampala',
+                'starts_at' => now()->addDays(14)->toDateTimeString(),
+                'max_per_order' => 6,
+                'refund_window_hours' => 72,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status', 'Listing updated and remains available to buyers.');
+
+        $listing->refresh();
+
+        $this->assertSame('published', $listing->status);
+        $this->assertSame('Published After Edit', $listing->title);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Published After Edit')
+            ->assertDontSee('Published Before Edit');
+    }
+
+    public function test_event_page_has_a_live_countdown_target_for_the_event_start(): void
+    {
+        $listing = $this->createListing($this->createOrganizer(), [
+            'starts_at' => now()->addHours(5),
+            'ends_at' => now()->addHours(7),
+        ]);
+
+        $this->get(route('events.show', $listing->slug))
+            ->assertOk()
+            ->assertSee('data-countdown="'.$listing->starts_at->toIso8601String().'"', false)
+            ->assertSee('data-countdown-end="'.$listing->ends_at->toIso8601String().'"', false)
+            ->assertSee('renderCountdowns', false);
     }
 
     public function test_submitting_without_a_banner_keeps_the_listing_as_a_draft(): void

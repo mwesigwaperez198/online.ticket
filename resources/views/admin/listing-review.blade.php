@@ -20,7 +20,7 @@
                 @if($listing->coverImageUrl())
                     <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="aspect-video w-full object-cover">
                 @else
-                    <div class="relative grid aspect-video w-full place-items-center overflow-hidden bg-gradient-to-br from-neon/15 via-void to-pulse/15">
+                    <div class="relative grid aspect-video w-full place-items-center overflow-hidden bg-linear-to-br from-neon/15 via-void to-pulse/15">
                         <div class="absolute inset-0 grid-dot opacity-30"></div>
                         <span class="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-xl font-black leading-tight text-white/70">
                             {{ $listing->title }}
@@ -115,8 +115,9 @@
                 <div>
                     <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Organizer commission (%)</label>
                     <input type="number" name="commission_percent" step="0.01" min="0" max="100"
-                           value="{{ rtrim(rtrim(number_format($listing->organizer->effectiveCommissionBps() / 100, 2), '0'), '.') }}" class="input-cyber text-sm">
-                    <p class="mt-1 text-xs text-slate-500">This rate is saved to the organizer profile and applies to future sales.</p>
+                              value="{{ $listing->organizer->commission_bps !== null ? rtrim(rtrim(number_format($listing->organizer->commission_bps / 100, 2), '0'), '.') : '' }}"
+                              placeholder="{{ rtrim(rtrim(number_format((int) setting('platform_commission_bps', 2000) / 100, 2), '0'), '.') }}" class="input-cyber text-sm">
+                          <p class="mt-1 text-xs text-slate-500">Leave blank to use the current platform rate. An entered value becomes this organizer’s override for future sales.</p>
                 </div>
                 <button class="btn-neon w-full rounded-xl px-5 py-3">Save decision</button>
             </form>

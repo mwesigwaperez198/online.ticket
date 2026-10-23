@@ -144,7 +144,7 @@
                 <img id="cover-preview" src="{{ $listing->coverImageUrl() }}" alt="Listing banner preview" class="aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
             @else
                 <div class="space-y-3">
-                    <div class="relative grid aspect-video w-full max-w-md place-items-center overflow-hidden rounded-xl border border-edge/80 bg-gradient-to-br from-neon/15 via-void to-pulse/15">
+                    <div class="relative grid aspect-video w-full max-w-md place-items-center overflow-hidden rounded-xl border border-edge/80 bg-linear-to-br from-neon/15 via-void to-pulse/15">
                         <div class="absolute inset-0 grid-dot opacity-30"></div>
                         <span class="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-lg font-bold leading-tight text-white/70">
                             {{ $listing->title ?: 'No banner image yet' }}
@@ -172,8 +172,12 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <button type="submit" name="intent" value="draft" class="btn-ghost rounded-xl px-6 py-3">Save draft</button>
-            <button type="submit" name="intent" value="submit" class="btn-neon rounded-xl px-6 py-3">Submit for approval</button>
+            @if($listing->exists && $listing->isLive())
+                <button type="submit" name="intent" value="draft" class="btn-neon rounded-xl px-6 py-3">Save changes</button>
+            @else
+                <button type="submit" name="intent" value="draft" class="btn-ghost rounded-xl px-6 py-3">Save draft</button>
+                <button type="submit" name="intent" value="submit" class="btn-neon rounded-xl px-6 py-3">Submit for approval</button>
+            @endif
             <a href="{{ route('organizer.listings.index') }}" class="btn-ghost rounded-xl px-6 py-3">Cancel</a>
         </div>
     </form>

@@ -16,7 +16,7 @@
                 @if($listing->coverImageUrl())
                     <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="mb-6 aspect-video w-full rounded-xl border border-edge/80 object-cover shadow-[0_0_40px_rgba(0,255,178,0.12)]" loading="lazy">
                 @else
-                    <div class="relative mb-6 grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-edge/80 bg-gradient-to-br from-neon/15 via-void to-pulse/15">
+                    <div class="relative mb-6 grid aspect-video w-full place-items-center overflow-hidden rounded-xl border border-edge/80 bg-linear-to-br from-neon/15 via-void to-pulse/15">
                         <div class="absolute inset-0 grid-dot opacity-30"></div>
                         <span class="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-2xl font-black leading-tight text-white/70">
                             {{ $listing->title }}
@@ -30,7 +30,7 @@
                         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                             @foreach($listing->images as $image)
                                 <a href="{{ $image->url() }}" target="_blank" rel="noopener" class="block overflow-hidden rounded-xl border border-edge/80">
-                                    <img src="{{ $image->url() }}" alt="{{ $listing->title }} event photo {{ $loop->iteration }}" class="aspect-[4/3] w-full object-cover transition duration-300 hover:scale-105" loading="lazy">
+                                    <img src="{{ $image->url() }}" alt="{{ $listing->title }} event photo {{ $loop->iteration }}" class="aspect-4/3 w-full object-cover transition duration-300 hover:scale-105" loading="lazy">
                                 </a>
                             @endforeach
                         </div>
@@ -51,6 +51,9 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <span class="pill {{ $listing->isEvent() ? 'pill-live' : 'pill-info' }}">{{ $listing->isEvent() ? 'Event' : 'Service' }}</span>
                     <span class="pill pill-pending">{{ $listing->starts_at->format('D d M Y • H:i') }}</span>
+                    @if($listing->isEvent())
+                        <span class="pill pill-info" data-countdown="{{ $listing->starts_at->toIso8601String() }}" @if($listing->ends_at) data-countdown-end="{{ $listing->ends_at->toIso8601String() }}" @endif>Loading countdown…</span>
+                    @endif
                     @if($listing->venue)<span class="pill pill-info">{{ $listing->venue }}</span>@endif
                 </div>
 

@@ -224,7 +224,7 @@
             <div class="flex h-16 items-center justify-between gap-4">
 
                 <a href="{{ route('home') }}" class="flex items-center gap-2.5 shrink-0">
-                    <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-neon to-pulse flex items-center justify-center">
+                    <div class="h-8 w-8 rounded-lg bg-linear-to-br from-neon to-pulse flex items-center justify-center">
                         <span class="font-display font-black text-void text-sm">N</span>
                     </div>
                     <span class="font-display font-bold text-base tracking-tight text-slate-100">
@@ -249,7 +249,7 @@
 
                 <div class="flex items-center gap-2">
                     @auth
-                        <span class="hidden sm:block text-xs text-slate-500 max-w-[120px] truncate">{{ auth()->user()->name }}</span>
+                        <span class="hidden sm:block text-xs text-slate-500 max-w-30 truncate">{{ auth()->user()->name }}</span>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button class="btn-outline rounded-lg px-3 py-1.5 text-sm">Sign out</button>
@@ -344,7 +344,7 @@
             <div class="flex flex-col gap-10 lg:flex-row lg:justify-between">
                 <div class="max-w-xs">
                     <div class="flex items-center gap-2">
-                        <div class="h-7 w-7 rounded-md bg-gradient-to-br from-neon to-pulse flex items-center justify-center">
+                        <div class="h-7 w-7 rounded-md bg-linear-to-br from-neon to-pulse flex items-center justify-center">
                             <span class="font-display font-black text-void text-xs">N</span>
                         </div>
                         <span class="font-display font-bold text-slate-200">Novara<span class="text-neon">Tickets</span></span>
@@ -399,5 +399,44 @@
 
 @include('partials.help')
 @stack('scripts')
+<script>
+(() => {
+    const renderCountdowns = () => {
+        const now = Date.now();
+
+        document.querySelectorAll('[data-countdown]').forEach((element) => {
+            const start = new Date(element.dataset.countdown).getTime();
+            const end = element.dataset.countdownEnd ? new Date(element.dataset.countdownEnd).getTime() : null;
+
+            if (!Number.isFinite(start)) {
+                element.textContent = 'Event time unavailable';
+                return;
+            }
+
+            const remaining = start - now;
+            if (remaining <= 0) {
+                element.textContent = end !== null && now < end
+                    ? 'Happening now'
+                    : (end !== null ? 'Event ended' : 'Event started');
+                return;
+            }
+
+            const totalSeconds = Math.floor(remaining / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            const time = days > 0
+                ? `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`
+                : `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s`;
+
+            element.textContent = `Starts in ${time}`;
+        });
+    };
+
+    renderCountdowns();
+    window.setInterval(renderCountdowns, 1000);
+})();
+</script>
 </body>
 </html>
