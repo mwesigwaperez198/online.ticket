@@ -10,6 +10,7 @@ use App\Models\Ticket;
 use App\Services\RefundService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 final class OrderController extends Controller
@@ -34,6 +35,24 @@ final class OrderController extends Controller
         $order->load(['listing.organizer', 'items.ticketType', 'items.serviceSlot.service', 'tickets', 'payment']);
 
         return view('buyer.order', ['order' => $order]);
+    }
+
+    public function receipt(Request $request, Order $order): Response|RedirectResponse
+    {
+        if ($order->user_id !== $request->user()->id && ! $request->user()->isAdmin()) {
+            abort(403);
+        }
+
+        if (! $order->isPaid()) {
+            return redirect()->route('buyer.orders.show', $order)
+                ->with('error', 'A receipt is available after payment is confirmed.');
+        }
+
+        $order->load(['listing', 'items.ticketType', 'items.serviceSlot.service', 'payment']);
+
+        return response()->view('buyer.receipt', ['order' => $order])
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="receipt-'.$order->tx_ref.'.html"');
     }
 
     public function refund(Request $request, Order $order, RefundService $refunds): RedirectResponse

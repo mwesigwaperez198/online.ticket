@@ -13,6 +13,7 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Support\Audit;
 use App\Support\QrCode;
+use App\Support\TicketingNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -29,7 +30,8 @@ final class PaymentProcessor
      */
     public function markPaid(Order $order, array $gatewayData, string $gateway = 'paystack'): Order
     {
-        return DB::transaction(function () use ($order, $gatewayData, $gateway): Order {
+        $shouldNotify = false;
+        $paidOrder = DB::transaction(function () use ($order, $gatewayData, $gateway, &$shouldNotify): Order {
             /** @var Order|null $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
 
@@ -64,6 +66,7 @@ final class PaymentProcessor
                 'gateway_reference' => (string) ($gatewayData['reference'] ?? $locked->tx_ref),
                 'gateway_status' => 'success',
             ])->save();
+            $shouldNotify = true;
 
             Payment::query()->updateOrCreate(
                 ['order_id' => $locked->id],
@@ -93,6 +96,84 @@ final class PaymentProcessor
 
             return $locked;
         }, 3);
+
+        if ($shouldNotify) {
+            TicketingNotifier::user(
+                $paidOrder->user,
+                'Payment received — '.$paidOrder->tx_ref,
+                'Your payment for "'.$paidOrder->listing->title.'" was confirmed. Your receipt and tickets are ready.',
+                ['label' => 'Open order and download receipt', 'url' => route('buyer.orders.show', $paidOrder)],
+            );
+            TicketingNotifier::user(
+                $paidOrder->listing->organizer?->user,
+                'New paid order — '.$paidOrder->tx_ref,
+                'A Mobile Money payment was confirmed for "'.$paidOrder->listing->title.'".',
+                ['label' => 'Open organizer dashboard', 'url' => route('organizer.dashboard')],
+            );
+        }
+
+        return $paidOrder;
+    }
+
+    /**
+     * Mark a provider-declined pending order failed and release its inventory hold.
+     */
+    public function markFailed(Order $order, string $reason = 'Mobile Money payment was declined'): Order
+    {
+        $shouldNotify = false;
+        $failedOrder = DB::transaction(function () use ($order, $reason, &$shouldNotify): Order {
+            /** @var Order|null $locked */
+            $locked = Order::query()->whereKey($order->id)->lockForUpdate()->first();
+
+            if ($locked === null || $locked->status !== 'pending') {
+                return $locked ?? $order;
+            }
+
+            $item = OrderItem::query()->where('order_id', $locked->id)->first();
+
+            if ($item?->ticket_type_id !== null) {
+                $this->inventory->releaseTicketType($item->ticket_type_id, $locked->quantity);
+            }
+            if ($item?->service_slot_id !== null) {
+                $this->inventory->releaseServiceSlot($item->service_slot_id, $locked->quantity);
+            }
+
+            $locked->forceFill([
+                'status' => 'failed',
+                'gateway_status' => 'failed',
+                'cancelled_at' => now(),
+                'notes' => trim(($locked->notes ? $locked->notes.' | ' : '').$reason),
+            ])->save();
+            $shouldNotify = true;
+
+            Payment::query()->updateOrCreate(
+                ['order_id' => $locked->id],
+                [
+                    'gateway' => $locked->gateway,
+                    'gateway_reference' => $locked->gateway_reference,
+                    'currency' => $locked->currency,
+                    'amount_minor' => $locked->total_minor,
+                    'fee_minor' => 0,
+                    'net_minor' => 0,
+                    'status' => 'failed',
+                    'raw_payload' => ['reason' => $reason],
+                    'paid_at' => null,
+                ]
+            );
+
+            return $locked;
+        }, 3);
+
+        if ($shouldNotify) {
+            TicketingNotifier::user(
+                $failedOrder->user,
+                'Mobile Money payment failed — '.$failedOrder->tx_ref,
+                'The payment for "'.$failedOrder->listing->title.'" was not completed. No ticket was issued and you were not charged by Novara.',
+                ['label' => 'View order', 'url' => route('buyer.orders.show', $failedOrder)],
+            );
+        }
+
+        return $failedOrder;
     }
 
     private function issueTickets(Order $order, OrderItem $item): void
@@ -153,7 +234,7 @@ final class PaymentProcessor
             'amount_minor' => $share,
             'balance_after' => $balance,
             'memo' => 'Sale '.$order->tx_ref,
-            'created_by' => auth()->id(),
+            'created_by' => null,
         ]);
 
         WalletTransaction::query()->create([
@@ -165,7 +246,7 @@ final class PaymentProcessor
             'amount_minor' => $order->commission_minor,
             'balance_after' => null,
             'memo' => 'Platform commission '.$order->commission_bps_applied.'bps',
-            'created_by' => auth()->id(),
+            'created_by' => null,
         ]);
     }
 }

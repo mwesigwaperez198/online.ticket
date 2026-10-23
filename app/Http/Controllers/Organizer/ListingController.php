@@ -11,6 +11,7 @@ use App\Models\TicketType;
 use App\Support\Audit;
 use App\Support\ImageUpload;
 use App\Support\Money;
+use App\Support\TicketingNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -131,6 +132,17 @@ final class ListingController extends Controller
         if ($submitted) {
             $listing->forceFill(['status' => 'pending'])->save();
             Audit::log('listing.submitted', $listing);
+            TicketingNotifier::admin(
+                'Event listing awaiting approval',
+                $listing->title.' was submitted by '.$organizer->business_name.'.',
+                ['label' => 'Review listing', 'url' => route('admin.listings.review', $listing)],
+            );
+            TicketingNotifier::user(
+                $organizer->user,
+                'Event submitted for approval',
+                'Your listing "'.$listing->title.'" was submitted. We will email you when it is approved or if changes are needed.',
+                ['label' => 'View listing', 'url' => route('organizer.listings.edit', $listing)],
+            );
         }
 
         Audit::log('listing.created', $listing, ['type' => $listing->type]);
@@ -206,6 +218,17 @@ final class ListingController extends Controller
         } elseif ($submitted) {
             $listing->forceFill(['status' => 'pending'])->save();
             Audit::log('listing.submitted', $listing);
+            TicketingNotifier::admin(
+                'Event listing awaiting approval',
+                $listing->title.' was submitted for review by '.$listing->organizer->business_name.'.',
+                ['label' => 'Review listing', 'url' => route('admin.listings.review', $listing)],
+            );
+            TicketingNotifier::user(
+                $listing->organizer->user,
+                'Event submitted for approval',
+                'Your listing "'.$listing->title.'" was submitted for review.',
+                ['label' => 'View listing', 'url' => route('organizer.listings.edit', $listing)],
+            );
             $message = 'Submitted for approval.';
         } elseif ($wantsSubmission) {
             $message = 'Your draft was saved, but add at least one ticket tier and a banner image before submitting.';

@@ -10,6 +10,7 @@ use App\Services\PaymentGateway\Contracts\MomoGateway;
 use App\Services\PaymentGateway\DemoMomoGateway;
 use App\Services\PaymentProcessor;
 use App\Support\Money;
+use App\Support\TicketingNotifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -75,6 +76,12 @@ final class CheckoutController extends Controller
 
             // The buyer never got a prompt, so the reserved seat goes back.
             $checkout->releaseHold($order);
+            TicketingNotifier::user(
+                $order->user,
+                'Mobile Money checkout could not start — '.$order->tx_ref,
+                'We could not start the payment request for your order. The ticket hold was released; no payment was completed.',
+                ['label' => 'View order', 'url' => route('buyer.orders.show', $order)],
+            );
 
             return back()->with('error', 'We could not start the Mobile Money checkout. Please try again.');
         }
@@ -121,6 +128,13 @@ final class CheckoutController extends Controller
 
             return redirect()->route('buyer.orders.show', $order)
                 ->with('status', 'Payment confirmed. Your tickets are ready.');
+        }
+
+        if (is_array($data) && in_array(($data['status'] ?? null), ['failed', 'cancelled', 'expired'], true)) {
+            $processor->markFailed($order, 'Mobile Money provider reported '.(string) $data['status']);
+
+            return redirect()->route('buyer.orders.show', $order)
+                ->with('error', 'Mobile Money payment was not completed. Start checkout again if you still want tickets.');
         }
 
         return redirect()->route('buyer.orders.show', $order)

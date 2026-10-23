@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\CmsController;
 use App\Http\Controllers\Admin\LedgerController;
@@ -49,6 +50,8 @@ Route::get('/robots.txt', [SeoController::class, 'robots'])->name('seo.robots');
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
@@ -63,6 +66,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/my-tickets', [TicketController::class, 'index'])->name('buyer.tickets');
     Route::get('/my-orders', [BuyerOrderController::class, 'index'])->name('buyer.orders');
     Route::get('/my-orders/{order}', [BuyerOrderController::class, 'show'])->name('buyer.orders.show');
+    Route::get('/my-orders/{order}/receipt', [BuyerOrderController::class, 'receipt'])->name('buyer.orders.receipt');
     Route::post('/my-orders/{order}/refund', [BuyerOrderController::class, 'refund'])->name('buyer.orders.refund');
 
     // A buyer is never locked out of selling: any signed-in account can open
@@ -101,12 +105,16 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/approvals/{organizer}', [OrganizerApprovalController::class, 'update'])->name('approvals.update');
         Route::get('/listings/{listing}/review', [ModerationController::class, 'show'])->name('listings.review');
         Route::post('/listings/{listing}/moderate', [ModerationController::class, 'update'])->name('listings.moderate');
+        Route::delete('/listings/{listing}', [ModerationController::class, 'destroy'])->name('listings.destroy');
         Route::post('/listings/{listing}/feature', [ModerationController::class, 'feature'])->name('listings.feature');
         Route::get('/ledger', [LedgerController::class, 'index'])->name('ledger');
         Route::get('/orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::post('/orders/{order}/refund', [AdminOrderController::class, 'refund'])->name('orders.refund');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
-        Route::post('/users/{user}/status', [AdminUserController::class, 'update'])->name('users.status');
+        Route::post('/users/{userId}/status', [AdminUserController::class, 'update'])->name('users.status');
+        Route::delete('/users/{userId}', [AdminUserController::class, 'destroy'])->name('users.destroy');
+        Route::post('/users/{userId}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
+        Route::post('/users/{userId}/password-reset', [AdminUserController::class, 'sendPasswordReset'])->name('users.password-reset');
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
         Route::post('/settings/commission', [SettingsController::class, 'updateCommission'])->name('settings.commission');
         Route::post('/settings/payout/{organizer}', [SettingsController::class, 'payout'])->name('settings.payout');

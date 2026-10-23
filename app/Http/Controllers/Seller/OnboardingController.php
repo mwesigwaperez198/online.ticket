@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Seller;
 use App\Http\Controllers\Controller;
 use App\Models\Organizer;
 use App\Support\Audit;
+use App\Support\TicketingNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -71,6 +72,18 @@ final class OnboardingController extends Controller
         $user->forceFill(['role' => 'organizer'])->save();
 
         Audit::log('seller.onboarded', $organizer, ['business_name' => $organizer->business_name]);
+
+        TicketingNotifier::admin(
+            'Organizer application awaiting review',
+            $organizer->business_name.' has submitted an organizer application.',
+            ['label' => 'Review organizers', 'url' => route('admin.approvals.index')],
+        );
+        TicketingNotifier::user(
+            $user,
+            'Organizer application received',
+            'Your organizer profile is pending admin approval. We will email you when its status changes.',
+            ['label' => 'Organizer dashboard', 'url' => route('organizer.dashboard')],
+        );
 
         return redirect()->route('organizer.dashboard')
             ->with('status', 'Your seller workspace is ready. Create a listing and submit it for moderation.');

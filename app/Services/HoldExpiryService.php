@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Support\TicketingNotifier;
 use Illuminate\Support\Facades\DB;
 
 final class HoldExpiryService
@@ -58,6 +59,12 @@ final class HoldExpiryService
 
                 if ($done) {
                     $released++;
+                    TicketingNotifier::user(
+                        $order->user,
+                        'Mobile Money order expired — '.$order->tx_ref,
+                        'The payment hold for "'.$order->listing->title.'" expired before payment was confirmed. You can start a new checkout if tickets are still available.',
+                        ['label' => 'Browse events', 'url' => route('home')],
+                    );
                 }
             } catch (\Throwable $e) {
                 report($e);

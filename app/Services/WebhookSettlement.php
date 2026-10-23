@@ -90,12 +90,29 @@ final class WebhookSettlement
 
                 $data = WebhookPayload::normalize($payload);
 
+                if (! $confirmation && in_array($data['status'], ['failed', 'cancelled', 'expired'], true)) {
+                    $this->processor->markFailed($order, 'Mobile Money provider reported '.$data['status']);
+                    $this->markProcessed($event);
+
+                    return;
+                }
+
+                if (! $confirmation && $data['status'] !== 'success') {
+                    $this->markProcessed($event);
+
+                    return;
+                }
+
                 $result = $confirmation
                     ? $this->confirmWithProvider($order, $data)
                     : $this->settleFromPayload($order, $data);
 
                 if ($result['settlement'] === null) {
                     if (! $result['transient']) {
+                        if (in_array($data['status'], ['failed', 'cancelled', 'expired'], true)) {
+                            $this->processor->markFailed($order, 'Mobile Money provider reported '.$data['status']);
+                        }
+
                         // The payload was rejected for good: closing the
                         // receipt keeps the sweep from spending on it again.
                         $this->markProcessed($event);
@@ -229,6 +246,10 @@ final class WebhookSettlement
         }
 
         if ($status !== 'success') {
+            if (in_array($status, ['failed', 'cancelled', 'expired'], true)) {
+                $this->processor->markFailed($order, 'Mobile Money provider reported '.$status);
+            }
+
             Log::info('momo webhook could not be confirmed with the provider', [
                 'tx_ref' => $order->tx_ref,
                 'status' => $status,

@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
 class Listing extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'organizer_id', 'type', 'slug', 'title', 'description', 'venue', 'venue_address',
@@ -66,7 +68,7 @@ class Listing extends Model
 
     public function organizer(): BelongsTo
     {
-        return $this->belongsTo(Organizer::class);
+        return $this->belongsTo(Organizer::class)->withTrashed();
     }
 
     public function ticketTypes(): HasMany

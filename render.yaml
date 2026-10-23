@@ -29,7 +29,17 @@ services:
       - key: SESSION_DRIVER
         value: database
       - key: MAIL_MAILER
-        value: log
+        value: smtp
+      - key: MAIL_HOST
+        sync: false
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_SCHEME
+        value: tls
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
       - key: MAIL_FROM_ADDRESS
         value: novaratechafrica@gmail.com
       - key: PAYSTACK_SECRET_KEY

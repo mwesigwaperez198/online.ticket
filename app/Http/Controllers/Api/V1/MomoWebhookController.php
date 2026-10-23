@@ -53,7 +53,7 @@ final class MomoWebhookController extends Controller
 
         $data = WebhookPayload::normalize($payload);
 
-        if (! $confirmation && $data['status'] !== 'success') {
+        if (! $confirmation && ! in_array($data['status'], ['success', 'failed', 'cancelled', 'expired'], true)) {
             Log::info('momo webhook ignored', ['status' => $data['status'], 'provider' => $provider]);
 
             return response()->json(['status' => true, 'message' => 'ignored']);

@@ -37,12 +37,12 @@ class Order extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class)->withTrashed();
     }
 
     public function listing(): BelongsTo
     {
-        return $this->belongsTo(Listing::class);
+        return $this->belongsTo(Listing::class)->withTrashed();
     }
 
     public function items(): HasMany

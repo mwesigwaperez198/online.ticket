@@ -36,7 +36,7 @@ class Ticket extends Model
 
     public function listing(): BelongsTo
     {
-        return $this->belongsTo(Listing::class);
+        return $this->belongsTo(Listing::class)->withTrashed();
     }
 
     public function orderItem(): BelongsTo

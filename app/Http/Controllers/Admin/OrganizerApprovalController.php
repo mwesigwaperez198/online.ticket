@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Organizer;
 use App\Support\Audit;
+use App\Support\TicketingNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -62,9 +63,23 @@ final class OrganizerApprovalController extends Controller
             'role' => $validated['status'] === 'approved' ? 'organizer' : $organizer->user->role,
         ])->save();
 
+        if ($organizer->user !== null && $validated['status'] === 'approved') {
+            $organizer->user->forceFill(['status' => 'active'])->save();
+        }
+
         Audit::log('organizer.moderated', $organizer, [
             'status' => $validated['status'],
             'commission_bps' => $commissionBps,
+        ]);
+
+        $notice = match ($validated['status']) {
+            'approved' => ['Organizer profile approved', 'Your organizer profile has been approved. You can manage listings and receive sales according to your account settings.'],
+            'suspended' => ['Organizer profile suspended', 'Your organizer profile was suspended by the platform. Contact support if you believe this is a mistake.'],
+            default => ['Organizer profile needs attention', 'Your organizer profile is pending review. Contact support if additional information is required.'],
+        };
+        TicketingNotifier::user($organizer->user, $notice[0], $notice[1], [
+            'label' => 'Organizer dashboard',
+            'url' => route('organizer.dashboard'),
         ]);
 
         return back()->with('status', 'Organizer updated.');

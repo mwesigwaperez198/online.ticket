@@ -13,6 +13,10 @@
         <span class="pill {{ match ($order->status) { 'paid' => 'pill-paid', 'pending' => 'pill-pending', default => 'pill-closed' } }}">{{ $order->status }}</span>
     </div>
 
+    @if($order->isPaid())
+        <a href="{{ route('buyer.orders.receipt', $order) }}" class="btn-outline mt-5 inline-flex rounded-xl px-4 py-2.5 text-sm">Download receipt</a>
+    @endif
+
     <div class="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div class="space-y-6">
             <div class="panel overflow-x-auto">

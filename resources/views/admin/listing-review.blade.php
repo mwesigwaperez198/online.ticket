@@ -121,6 +121,11 @@
                 </div>
                 <button class="btn-neon w-full rounded-xl px-5 py-3">Save decision</button>
             </form>
+            <form method="POST" action="{{ route('admin.listings.destroy', $listing) }}" class="panel p-5" onsubmit="return confirm('Cancel and archive this listing from the marketplace? Historical orders and payment records remain available.');">
+                @csrf
+                @method('DELETE')
+                <button class="btn-ghost w-full rounded-xl px-4 py-2.5 text-sm text-red-300">Cancel and archive listing</button>
+            </form>
         </aside>
     </div>
 </section>

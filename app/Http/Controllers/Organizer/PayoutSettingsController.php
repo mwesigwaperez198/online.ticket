@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Organizer;
 use App\Http\Controllers\Controller;
 use App\Models\Organizer;
 use App\Support\Audit;
+use App\Support\TicketingNotifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -79,6 +80,17 @@ final class PayoutSettingsController extends Controller
             'provider' => $organizer->payout_provider,
             'reapproval_required' => $changedNumber,
         ]);
+
+        TicketingNotifier::admin(
+            'Organizer payout account needs approval',
+            $organizer->business_name.' submitted or changed a Mobile Money payout account.',
+            ['label' => 'Review payout details', 'url' => route('admin.approvals.index')],
+        );
+        TicketingNotifier::user(
+            $organizer->user,
+            'Payout account submitted',
+            'Your payout details were submitted. They must be verified before payouts can be made.',
+        );
 
         return redirect()->route('organizer.payout-settings.edit')
             ->with('status', 'Payout details submitted. The platform will approve your Mobile Money account shortly.');

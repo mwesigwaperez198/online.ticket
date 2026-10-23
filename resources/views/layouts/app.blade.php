@@ -250,6 +250,7 @@
                 <div class="flex items-center gap-2">
                     @auth
                         <span class="hidden sm:block text-xs text-slate-500 max-w-30 truncate">{{ auth()->user()->name }}</span>
+                        <a href="{{ route('profile.edit') }}" class="btn-outline hidden rounded-lg px-3 py-1.5 text-sm sm:inline-flex">Profile</a>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button class="btn-outline rounded-lg px-3 py-1.5 text-sm">Sign out</button>
@@ -286,6 +287,9 @@
                         <span aria-hidden="true" class="text-lg leading-none">＋</span><span>Sell tickets</span>
                     </a>
                 @endif
+                <a href="{{ route('profile.edit') }}" class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] text-slate-400 transition">
+                    <span aria-hidden="true" class="text-lg leading-none">⚙</span><span>Profile</span>
+                </a>
             @else
                 <a href="{{ route('login') }}" class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] text-slate-400 transition">
                     <span aria-hidden="true" class="text-lg leading-none">⇥</span><span>Sign in</span>
