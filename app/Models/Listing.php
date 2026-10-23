@@ -1,4 +1,7 @@
 <?php
+202 lines · 5 KB
+
+
 
 declare(strict_types=1);
 
@@ -10,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -111,9 +113,6 @@ class Listing extends Model
         return $query->whereHas('organizer', fn (Builder $q) => $q->where('user_id', $userId));
     }
 
-    /**
-     * Listings hand-picked for the curated "Our Picks" row on the home page.
-     */
     public function scopeFeatured(Builder $query): Builder
     {
         return $query->where('featured', true);
@@ -139,18 +138,6 @@ class Listing extends Model
         return $this->latitude !== null && $this->longitude !== null;
     }
 
-    public static function mediaDisk(): string
-    {
-        $keysConfigured = filled(env('IMAGEKIT_PUBLIC_KEY'))
-            && filled(env('IMAGEKIT_PRIVATE_KEY'))
-            && filled(env('IMAGEKIT_URL_ENDPOINT'));
-
-        return $keysConfigured ? 'imagekit' : 'public';
-    }
-
-    /**
-     * The public URL of the event banner, if one was uploaded.
-     */
     public function coverImageUrl(): ?string
     {
         if (! is_string($this->cover_image) || $this->cover_image === '') {
@@ -161,22 +148,9 @@ class Listing extends Model
             return $this->cover_image;
         }
 
-        /** @var FilesystemAdapter $disk */
-        $disk = Storage::disk(self::mediaDisk());
-
-        return $disk->url($this->cover_image);
+        return Storage::disk('public')->url($this->cover_image);
     }
 
-    /**
-     * A hardened embed URL for an organizer-supplied trailer, or null.
-     *
-     * The raw URL is never trusted as an iframe source. The host is parsed and
-     * must exactly match an allow list of known video platforms, and only the
-     * video identifier is carried across, so a crafted URL can never introduce
-     * a new host, path or query into the embed.
-     *
-     * @return array{url: string, host: string}|null
-     */
     public function videoEmbed(): ?array
     {
         if (! is_string($this->video_url) || $this->video_url === '') {
@@ -201,7 +175,6 @@ class Listing extends Model
             parse_str($parts['query'], $query);
         }
 
-        // YouTube: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/shorts/ID.
         if (in_array($host, ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'], true)) {
             if ($host === 'youtu.be') {
                 $id = $path;
@@ -218,7 +191,6 @@ class Listing extends Model
             return null;
         }
 
-        // Vimeo: vimeo.com/123456789
         if (in_array($host, ['vimeo.com', 'www.vimeo.com'], true) && preg_match('/^\d+$/', $path) === 1) {
             return ['url' => 'https://player.vimeo.com/video/'.$path, 'host' => 'Vimeo'];
         }
@@ -226,10 +198,6 @@ class Listing extends Model
         return null;
     }
 
-    /**
-     * A video identifier is a short, conservative token: no traversal, no
-     * markup, no separators.
-     */
     private function validVideoId(string $id): bool
     {
         return preg_match('/^[A-Za-z0-9_-]{6,20}$/', $id) === 1;
