@@ -70,4 +70,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 10000
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && if [ -f \"$DB_DATABASE\" ]; then chown www-data:www-data \"$DB_DATABASE\"; fi && php artisan storage:link --force && test -L public/storage && test \"$(readlink public/storage)\" = \"${PUBLIC_STORAGE_ROOT:-/var/data/app/public}\" && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
+CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && if [ -f \"$DB_DATABASE\" ]; then chown www-data:www-data \"$DB_DATABASE\"; fi && php artisan storage:link && php artisan config:cache && php artisan route:cache && php artisan view:cache && apache2-foreground"]
