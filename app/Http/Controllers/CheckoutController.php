@@ -117,6 +117,7 @@ final class CheckoutController extends Controller
         }
 
         $reference = (string) ($order->gateway_reference ?: $txRef);
+
         $data = $gateway->verify($reference);
 
         if ((! is_array($data) || ($data['status'] ?? null) !== 'success') && $reference !== $txRef) {
@@ -132,5 +133,80 @@ final class CheckoutController extends Controller
             $processor->markPaid($order, $data, $gateway->name());
 
             return redirect()->route('buyer.orders.show', $order)
-                ->
-
+                ->with('status', 'Payment confirmed. Your tickets are ready.');
+        }
+
+        if (is_array($data) && in_array(($data['status'] ?? null), ['failed', 'cancelled', 'expired'], true)) {
+            $processor->markFailed($order, 'Mobile Money provider reported '.(string) $data['status']);
+
+            return redirect()->route('buyer.orders.show', $order)
+                ->with('error', 'Mobile Money payment was not completed. Start checkout again if you still want tickets.');
+        }
+
+        return redirect()->route('buyer.orders.show', $order)
+            ->with('error', 'Payment is still pending. Refresh in a moment once your Mobile Money confirmation lands.');
+    }
+
+    public function prompt(Request $request, string $tx_ref): View
+    {
+        $order = $this->ownedOrder($request, $tx_ref);
+
+        if ($order === null) {
+            abort(404);
+        }
+
+        return view('checkout.prompt', [
+            'order' => $order,
+            'provider' => (string) config('ticketing.momo.providers.'.$order->momo_provider, 'Mobile Money'),
+            'providerKey' => (string) $order->momo_provider,
+        ]);
+    }
+
+    public function status(Request $request, string $tx_ref): JsonResponse
+    {
+        $order = $this->ownedOrder($request, $tx_ref);
+
+        if ($order === null) {
+            return response()->json(['status' => 'unknown', 'paid' => false], 404);
+        }
+
+        return response()->json([
+            'status' => $order->status,
+            'paid' => $order->isPaid(),
+            'url' => $order->isPaid() ? route('buyer.orders.show', $order) : null,
+        ]);
+    }
+
+    public function demo(string $txRef, MomoGateway $gateway): View
+    {
+        $order = Order::query()->where('tx_ref', $txRef)->firstOrFail();
+
+        return view('checkout.demo', [
+            'order' => $order,
+            'demo' => $gateway instanceof DemoMomoGateway,
+        ]);
+    }
+
+    public function demoApprove(Request $request, string $tx_ref, MomoGateway $gateway): RedirectResponse
+    {
+        $order = Order::query()->where('tx_ref', $tx_ref)->first();
+
+        if ($order === null) {
+            return redirect()->route('home')->with('error', 'We could not find that order.');
+        }
+
+        if ($gateway instanceof DemoMomoGateway) {
+            $gateway->approve($tx_ref);
+        }
+
+        return redirect()->route('checkout.return', ['reference' => $tx_ref]);
+    }
+
+    private function ownedOrder(Request $request, string $txRef): ?Order
+    {
+        return Order::query()
+            ->where('tx_ref', $txRef)
+            ->where('user_id', $request->user()?->id)
+            ->first();
+    }
+}
