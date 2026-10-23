@@ -19,9 +19,9 @@ return [
 
     'momo' => [
         'mode' => env('MOMO_MODE', 'live'),
-        'gateway' => env('MOMO_GATEWAY', 'paystack'),
+        'gateway' => env('MOMO_GATEWAY', 'pesapal'),
 
-        'providers' => match (strtolower(trim((string) env('MOMO_GATEWAY', 'paystack')))) {
+        'providers' => match (strtolower(trim((string) env('MOMO_GATEWAY', 'pesapal')))) {
             'mtn' => ['mtn' => 'MTN Mobile Money'],
             'pesapal' => ['pesapal' => 'Pesapal Mobile Money'],
             default => [
@@ -30,7 +30,7 @@ return [
             ],
         },
 
-        'unavailable_providers' => match (strtolower(trim((string) env('MOMO_GATEWAY', 'paystack')))) {
+        'unavailable_providers' => match (strtolower(trim((string) env('MOMO_GATEWAY', 'pesapal')))) {
             'mtn' => ['airtel' => 'Airtel Money'],
             'pesapal' => [],
             default => [],
@@ -41,7 +41,7 @@ return [
 
         'webhook_providers' => array_values(array_filter(array_map(
             'trim',
-            explode(',', (string) env('MOMO_WEBHOOK_PROVIDERS', env('MOMO_GATEWAY', 'paystack')))
+            explode(',', (string) env('MOMO_WEBHOOK_PROVIDERS', env('MOMO_GATEWAY', 'pesapal')))
         ))),
 
         'webhook_secret' => env('MOMO_WEBHOOK_SECRET'),
