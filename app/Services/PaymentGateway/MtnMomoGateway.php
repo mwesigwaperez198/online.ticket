@@ -96,6 +96,11 @@ final class MtnMomoGateway implements MomoGateway
         ];
     }
 
+    /**
+     * Confirm a charge with MTN and report what MTN says about it.
+     *
+     * @return array<string,mixed>|null
+     */
     public function verify(string $txRef): ?array
     {
         $response = $this->client($this->primaryKey)
