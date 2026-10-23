@@ -38,6 +38,10 @@ final class ListingReviewFlowTest extends TestCase
                     ['name' => '', 'price' => '', 'capacity' => ''],
                 ],
                 'cover_image' => UploadedFile::fake()->image('summer.png'),
+                'gallery_images' => [
+                    UploadedFile::fake()->image('stage.png'),
+                    UploadedFile::fake()->image('crowd.png'),
+                ],
             ])
             ->assertRedirect();
 
@@ -45,7 +49,35 @@ final class ListingReviewFlowTest extends TestCase
         $this->assertSame('pending', $listing->status);
         $this->assertNotNull($listing->cover_image);
         $this->assertSame(1, $listing->ticketTypes()->count());
+        $this->assertSame(2, $listing->images()->count());
+        foreach ($listing->images as $image) {
+            $this->assertTrue(Storage::disk('public')->exists($image->path));
+        }
         $this->assertTrue(Storage::disk('public')->exists($listing->cover_image));
+    }
+
+    public function test_customers_can_view_event_gallery_and_organizers_can_remove_photos(): void
+    {
+        Storage::fake('public');
+        $organizer = $this->createOrganizer();
+        $listing = $this->createListing($organizer, ['title' => 'Gallery Event']);
+        $image = $listing->images()->create([
+            'path' => 'listing-galleries/'.$listing->id.'/stage.jpg',
+            'sort_order' => 0,
+        ]);
+        Storage::disk('public')->put($image->path, 'image data');
+
+        $this->get(route('events.show', $listing->slug))
+            ->assertOk()
+            ->assertSee('Event photos')
+            ->assertSee($image->url(), false);
+
+        $this->actingAs($organizer->user)
+            ->delete(route('organizer.listings.images.destroy', [$listing, $image]))
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('listing_images', ['id' => $image->id]);
+        Storage::disk('public')->assertMissing($image->path);
     }
 
     public function test_submitting_without_a_banner_keeps_the_listing_as_a_draft(): void
@@ -84,6 +116,11 @@ final class ListingReviewFlowTest extends TestCase
             'cover_image' => 'covers/review-event.png',
         ]);
         Storage::disk('public')->put($listing->cover_image, 'fake image bytes');
+        $galleryImage = $listing->images()->create([
+            'path' => 'listing-galleries/'.$listing->id.'/stage.jpg',
+            'sort_order' => 0,
+        ]);
+        Storage::disk('public')->put($galleryImage->path, 'gallery image bytes');
         $this->createTicketType($listing, ['name' => 'Balcony', 'capacity' => 120]);
         /** @var User $admin */
         $admin = User::factory()->create(['role' => 'admin', 'status' => 'active']);
@@ -95,6 +132,7 @@ final class ListingReviewFlowTest extends TestCase
             ->assertSee('DA-VELA')
             ->assertSee('Payout account')
             ->assertSee('Balcony')
+            ->assertSee($galleryImage->url(), false)
             ->assertSee($listing->coverImageUrl(), false);
 
         $this->actingAs($admin)

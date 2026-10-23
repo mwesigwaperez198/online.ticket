@@ -78,6 +78,11 @@ class Listing extends Model
         return $this->hasMany(Service::class);
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(ListingImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);

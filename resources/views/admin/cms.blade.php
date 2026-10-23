@@ -161,7 +161,9 @@
                                     @if($listing->coverImageUrl())
                                         <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="h-12 w-20 rounded-md object-cover">
                                     @else
-                                        <span class="text-xs text-slate-500">No banner</span>
+                                        <div class="relative grid h-12 w-20 place-items-center overflow-hidden rounded-md border border-edge/70 bg-gradient-to-br from-neon/15 via-void to-pulse/15">
+                                            <span class="px-1 text-center text-[.55rem] font-bold leading-tight text-white/70">{{ Str::limit($listing->title, 18) }}</span>
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="text-slate-200 font-medium">{{ $listing->title }}</td>

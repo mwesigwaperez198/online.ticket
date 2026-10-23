@@ -16,7 +16,7 @@ final class ModerationController extends Controller
     public function show(Listing $listing): View
     {
         return view('admin.listing-review', [
-            'listing' => $listing->load(['organizer.user', 'ticketTypes', 'services']),
+            'listing' => $listing->load(['organizer.user', 'ticketTypes', 'services', 'images']),
         ]);
     }
 

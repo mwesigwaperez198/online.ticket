@@ -217,7 +217,7 @@
 </head>
 <body class="antialiased">
 
-<div class="min-h-screen flex flex-col">
+<div class="min-h-screen flex flex-col pb-20 md:pb-0">
 
     <header class="sticky top-0 z-40 border-b border-edge/60 bg-void/80 backdrop-blur-xl">
         <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -263,6 +263,36 @@
             </div>
         </nav>
     </header>
+
+    <nav aria-label="Mobile navigation" class="fixed inset-x-0 bottom-0 z-50 border-t border-edge/80 bg-void/95 px-2 pt-2 backdrop-blur-xl md:hidden" style="padding-bottom: max(.5rem, env(safe-area-inset-bottom))">
+        <div class="mx-auto flex max-w-lg items-stretch justify-around">
+            <a href="{{ route('home') }}" @class(['flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] transition', 'text-neon' => request()->routeIs('home', 'events.*'), 'text-slate-400' => ! request()->routeIs('home', 'events.*')])>
+                <span aria-hidden="true" class="text-lg leading-none">⌕</span><span>Browse</span>
+            </a>
+            @auth
+                <a href="{{ route('buyer.tickets') }}" @class(['flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] transition', 'text-neon' => request()->routeIs('buyer.tickets', 'buyer.orders*'), 'text-slate-400' => ! request()->routeIs('buyer.tickets', 'buyer.orders*')])>
+                    <span aria-hidden="true" class="text-lg leading-none">▣</span><span>My Tickets</span>
+                </a>
+                @if(auth()->user()->isOrganizer())
+                    <a href="{{ route('organizer.dashboard') }}" @class(['flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] transition', 'text-neon' => request()->routeIs('organizer.*'), 'text-slate-400' => ! request()->routeIs('organizer.*')])>
+                        <span aria-hidden="true" class="text-lg leading-none">◉</span><span>Dashboard</span>
+                    </a>
+                @elseif(auth()->user()->isAdmin())
+                    <a href="{{ route('admin.dashboard') }}" class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] text-slate-400 transition">
+                        <span aria-hidden="true" class="text-lg leading-none">◉</span><span>Admin</span>
+                    </a>
+                @else
+                    <a href="{{ route('seller.onboarding') }}" class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] text-slate-400 transition">
+                        <span aria-hidden="true" class="text-lg leading-none">＋</span><span>Sell tickets</span>
+                    </a>
+                @endif
+            @else
+                <a href="{{ route('login') }}" class="flex min-w-0 flex-1 flex-col items-center gap-1 rounded-lg px-2 py-1.5 text-[.68rem] text-slate-400 transition">
+                    <span aria-hidden="true" class="text-lg leading-none">⇥</span><span>Sign in</span>
+                </a>
+            @endauth
+        </div>
+    </nav>
 
     @if(session('status'))
         <div class="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">

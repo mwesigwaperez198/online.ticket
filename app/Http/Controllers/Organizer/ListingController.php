@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Organizer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Listing;
+use App\Models\ListingImage;
 use App\Models\TicketType;
 use App\Support\Audit;
 use App\Support\ImageUpload;
@@ -66,6 +67,8 @@ final class ListingController extends Controller
             'ticket_types.*.price' => ['nullable', 'numeric', 'min:0'],
             'ticket_types.*.capacity' => ['nullable', 'integer', 'min:1'],
             'cover_image' => ['nullable', ...array_slice(ImageUpload::rules(), 1)],
+            'gallery_images' => ['nullable', 'array', 'max:12'],
+            'gallery_images.*' => ['nullable', ...array_slice(ImageUpload::rules(), 1)],
         ]);
 
         foreach ((array) ($validated['ticket_types'] ?? []) as $tier) {
@@ -120,6 +123,8 @@ final class ListingController extends Controller
             $this->storeCover($listing, $request->file('cover_image'));
         }
 
+        $this->storeGalleryImages($listing, (array) $request->file('gallery_images', []));
+
         $submitted = ($validated['intent'] ?? 'draft') === 'submit'
             && $this->hasSubmissionRequirements($listing);
 
@@ -172,7 +177,15 @@ final class ListingController extends Controller
             'max_per_order' => ['required', 'integer', 'min:1', 'max:20'],
             'refund_window_hours' => ['required', 'integer', 'min:0', 'max:720'],
             'cover_image' => ['nullable', ...array_slice(ImageUpload::rules(), 1)],
+            'gallery_images' => ['nullable', 'array', 'max:12'],
+            'gallery_images.*' => ['nullable', ...array_slice(ImageUpload::rules(), 1)],
         ]);
+
+        $galleryFiles = (array) $request->file('gallery_images', []);
+
+        if ($listing->images()->count() + count($galleryFiles) > 12) {
+            return back()->withErrors(['gallery_images' => 'An event can have up to 12 gallery photos. Remove an existing photo before adding more.'])->withInput();
+        }
 
         unset($validated['intent'], $validated['cover_image']);
         $listing->fill($validated)->save();
@@ -180,6 +193,8 @@ final class ListingController extends Controller
         if ($request->hasFile('cover_image')) {
             $this->storeCover($listing, $request->file('cover_image'));
         }
+
+        $this->storeGalleryImages($listing, $galleryFiles);
 
         $submitted = ($request->input('intent', 'draft') === 'submit')
             && $this->hasSubmissionRequirements($listing);
@@ -248,6 +263,20 @@ final class ListingController extends Controller
         return back()->with('status', 'Banner image updated.');
     }
 
+    public function deleteImage(Listing $listing, ListingImage $image): RedirectResponse
+    {
+        if (! $this->owns($listing) || $image->listing_id !== $listing->id) {
+            abort(403);
+        }
+
+        Storage::disk('public')->delete($image->path);
+        $image->delete();
+
+        Audit::log('listing.gallery_image_deleted', $listing, ['image_id' => $image->id]);
+
+        return back()->with('status', 'Gallery photo removed.');
+    }
+
     public function destroy(Listing $listing): RedirectResponse
     {
         if (! $this->owns($listing)) {
@@ -300,5 +329,34 @@ final class ListingController extends Controller
         Audit::log('listing.cover_uploaded', $listing, ['path' => $path]);
 
         return true;
+    }
+
+    /**
+     * @param  array<int, UploadedFile>  $files
+     */
+    private function storeGalleryImages(Listing $listing, array $files): void
+    {
+        foreach ($files as $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+
+            $extension = ImageUpload::extensionFor($file);
+
+            if ($extension === null) {
+                continue;
+            }
+
+            $path = $file->storeAs('listing-galleries/'.$listing->id, Str::random(40).'.'.$extension, ['disk' => 'public']);
+
+            if ($path === false) {
+                continue;
+            }
+
+            $listing->images()->create([
+                'path' => $path,
+                'sort_order' => $listing->images()->count(),
+            ]);
+        }
     }
 }

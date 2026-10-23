@@ -19,6 +19,20 @@ final class OrganizerPortalTest extends TestCase
     use InteractsWithMarketplace;
     use RefreshDatabase;
 
+    public function test_mobile_navigation_exposes_browse_tickets_and_organizer_dashboard(): void
+    {
+        $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);
+        $this->createOrganizer($organizerUser);
+
+        $this->actingAs($organizerUser)
+            ->get(route('organizer.dashboard'))
+            ->assertOk()
+            ->assertSee('aria-label="Mobile navigation"', false)
+            ->assertSee('Browse')
+            ->assertSee('My Tickets')
+            ->assertSee('Dashboard');
+    }
+
     public function test_an_organizer_only_sees_their_own_listings(): void
     {
         $organizerUser = User::factory()->create(['role' => 'organizer', 'status' => 'active']);

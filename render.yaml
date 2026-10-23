@@ -46,6 +46,8 @@ services:
         value: mtn
       - key: MOMO_MODE
         value: live
+      - key: PUBLIC_STORAGE_ROOT
+        value: /var/data/app/public
       - key: MOMO_WEBHOOK_PROVIDERS
         value: mtn
       - key: MTN_BASE_URL

@@ -26,6 +26,13 @@
             <article class="panel panel-hover p-5">
                 @if($listing->coverImageUrl())
                     <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="mb-4 aspect-video w-full rounded-lg object-cover">
+                @else
+                    <div class="relative mb-4 grid aspect-video w-full place-items-center overflow-hidden rounded-lg border border-edge/80 bg-gradient-to-br from-neon/15 via-void to-pulse/15">
+                        <div class="absolute inset-0 grid-dot opacity-30"></div>
+                        <span class="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-base font-bold leading-tight text-white/70">
+                            {{ $listing->title }}
+                        </span>
+                    </div>
                 @endif
                 <div class="flex items-start justify-between gap-3">
                     <div>

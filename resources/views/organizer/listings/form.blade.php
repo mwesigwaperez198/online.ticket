@@ -143,7 +143,16 @@
             @if($listing->coverImageUrl())
                 <img id="cover-preview" src="{{ $listing->coverImageUrl() }}" alt="Listing banner preview" class="aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
             @else
-                <img id="cover-preview" alt="Selected banner preview" class="hidden aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
+                <div class="space-y-3">
+                    <div class="relative grid aspect-video w-full max-w-md place-items-center overflow-hidden rounded-xl border border-edge/80 bg-gradient-to-br from-neon/15 via-void to-pulse/15">
+                        <div class="absolute inset-0 grid-dot opacity-30"></div>
+                        <span class="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-lg font-bold leading-tight text-white/70">
+                            {{ $listing->title ?: 'No banner image yet' }}
+                        </span>
+                    </div>
+                    <img id="cover-preview" alt="Selected banner preview" class="hidden aspect-video w-full max-w-md rounded-xl border border-edge/80 object-cover">
+                    <p class="text-xs text-amber" id="cover-warning">A banner image is required before this listing can be submitted for approval.</p>
+                </div>
             @endif
             <div>
                 <label class="mb-1 block text-xs uppercase tracking-wider text-slate-500">Choose image</label>
@@ -152,18 +161,48 @@
             </div>
         </div>
 
+        <div class="panel space-y-4 p-6">
+            <div>
+                <h2 class="font-display text-lg font-bold">Event gallery</h2>
+                <p class="mt-1 text-xs text-slate-500">Add up to 12 extra JPEG, PNG or WebP photos (2 MB each). Customers will see these on the event page before checkout.</p>
+            </div>
+            <input id="gallery-input" type="file" name="gallery_images[]" accept="image/jpeg,image/png,image/webp" multiple
+                   class="block w-full text-sm text-slate-400 file:mr-4 file:rounded-lg file:border-0 file:bg-neon/15 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neon hover:file:bg-neon/25">
+            <div id="gallery-selection" class="grid grid-cols-2 gap-3 sm:grid-cols-3"></div>
+        </div>
+
         <div class="flex flex-wrap gap-3">
             <button type="submit" name="intent" value="draft" class="btn-ghost rounded-xl px-6 py-3">Save draft</button>
             <button type="submit" name="intent" value="submit" class="btn-neon rounded-xl px-6 py-3">Submit for approval</button>
             <a href="{{ route('organizer.listings.index') }}" class="btn-ghost rounded-xl px-6 py-3">Cancel</a>
         </div>
     </form>
+
+    @if($listing->exists && $listing->images->isNotEmpty())
+        <div class="panel mt-6 p-6">
+            <h2 class="font-display text-lg font-bold">Saved gallery photos</h2>
+            <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                @foreach($listing->images as $image)
+                    <div class="rounded-xl border border-edge/80 p-2">
+                        <img src="{{ $image->url() }}" alt="{{ $listing->title }} gallery photo" class="aspect-video w-full rounded-lg object-cover">
+                        <form method="POST" action="{{ route('organizer.listings.images.destroy', [$listing, $image]) }}" class="mt-2">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn-ghost w-full rounded-lg px-3 py-2 text-xs text-red-300">Remove photo</button>
+                        </form>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 </section>
 <script>
 (() => {
     const form = document.getElementById('listing-form');
     const preview = document.getElementById('cover-preview');
     const imageInput = document.getElementById('cover-input');
+    const galleryInput = document.getElementById('gallery-input');
+    const gallerySelection = document.getElementById('gallery-selection');
     const isNew = form?.dataset.isNew === 'true';
     const storageKey = form?.dataset.draftKey;
 
@@ -172,6 +211,20 @@
         if (!file || !preview) return;
         preview.src = URL.createObjectURL(file);
         preview.classList.remove('hidden');
+        preview.classList.add('max-w-md');
+        document.getElementById('cover-warning')?.remove();
+    });
+
+    galleryInput?.addEventListener('change', () => {
+        if (!gallerySelection) return;
+        gallerySelection.replaceChildren();
+        for (const file of Array.from(galleryInput.files || [])) {
+            const image = document.createElement('img');
+            image.src = URL.createObjectURL(file);
+            image.alt = file.name;
+            image.className = 'aspect-video w-full rounded-lg object-cover';
+            gallerySelection.append(image);
+        }
     });
 
     if (!isNew || !form || !storageKey) return;

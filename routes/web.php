@@ -80,6 +80,7 @@ Route::middleware('auth')->group(function (): void {
         Route::get('/listings/{listing}/edit', [ListingController::class, 'edit'])->name('listings.edit');
         Route::put('/listings/{listing}', [ListingController::class, 'update'])->name('listings.update');
         Route::post('/listings/{listing}/cover', [ListingController::class, 'uploadCover'])->name('listings.cover');
+        Route::delete('/listings/{listing}/images/{image}', [ListingController::class, 'deleteImage'])->name('listings.images.destroy');
         Route::post('/listings/{listing}/publish', [ListingController::class, 'publish'])->name('listings.publish');
         Route::delete('/listings/{listing}', [ListingController::class, 'destroy'])->name('listings.destroy');
 
@@ -96,7 +97,7 @@ Route::middleware('auth')->group(function (): void {
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function (): void {
         Route::get('/', [CmsController::class, 'index'])->name('dashboard');
         Route::get('/approvals', [OrganizerApprovalController::class, 'index'])->name('approvals.index');
-        Route::get('/approvals/{organizer}', fn() => redirect()->route('admin.approvals.index'))->name('approvals.show');
+        Route::get('/approvals/{organizer}', fn () => redirect()->route('admin.approvals.index'))->name('approvals.show');
         Route::post('/approvals/{organizer}', [OrganizerApprovalController::class, 'update'])->name('approvals.update');
         Route::get('/listings/{listing}/review', [ModerationController::class, 'show'])->name('listings.review');
         Route::post('/listings/{listing}/moderate', [ModerationController::class, 'update'])->name('listings.moderate');

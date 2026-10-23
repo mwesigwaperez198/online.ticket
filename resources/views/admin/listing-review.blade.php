@@ -20,7 +20,12 @@
                 @if($listing->coverImageUrl())
                     <img src="{{ $listing->coverImageUrl() }}" alt="{{ $listing->title }} banner" class="aspect-video w-full object-cover">
                 @else
-                    <div class="grid aspect-video place-items-center bg-void text-slate-500">No banner image uploaded</div>
+                    <div class="relative grid aspect-video w-full place-items-center overflow-hidden bg-gradient-to-br from-neon/15 via-void to-pulse/15">
+                        <div class="absolute inset-0 grid-dot opacity-30"></div>
+                        <span class="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-xl font-black leading-tight text-white/70">
+                            {{ $listing->title }}
+                        </span>
+                    </div>
                 @endif
                 <div class="space-y-3 p-6">
                     <p class="text-xs uppercase tracking-wider text-slate-500">{{ ucfirst($listing->type) }} description</p>
@@ -38,6 +43,17 @@
                     @endif
                 </div>
             </div>
+
+            @if($listing->images->isNotEmpty())
+                <div class="panel p-6">
+                    <h2 class="font-display text-lg font-bold">Event gallery</h2>
+                    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        @foreach($listing->images as $image)
+                            <img src="{{ $image->url() }}" alt="{{ $listing->title }} gallery photo {{ $loop->iteration }}" class="aspect-video w-full rounded-lg object-cover">
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
             <div class="panel p-6">
                 <h2 class="font-display text-lg font-bold">Pricing and capacity</h2>

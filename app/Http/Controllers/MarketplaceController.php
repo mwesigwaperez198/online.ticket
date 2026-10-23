@@ -77,7 +77,7 @@ final class MarketplaceController extends Controller
 
         $listing = Listing::query()
             ->published()
-            ->with(['organizer.user', 'ticketTypes', 'services.slots'])
+            ->with(['organizer.user', 'ticketTypes', 'services.slots', 'images'])
             ->where('slug', $slug)
             ->firstOrFail();
 
